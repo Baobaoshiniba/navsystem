@@ -1,8 +1,9 @@
 # macOS
 .DS_Store
 
-# 本地数据（SQLite 数据库含真实业务数据，禁止推送）
-data/
+# 本地数据：仅放行空结构库（无真实数据），其余备份/WAL/SHM 一律排除
+data/*
+!data/company_nav.sqlite
 
 # 日志
 *.log
