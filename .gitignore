@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# 本地数据（SQLite 数据库含真实业务数据，禁止推送）
+data/
+
+# 日志
+*.log
