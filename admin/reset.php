@@ -167,7 +167,7 @@ admin_header(t('重置演示'), 'reset');
 </div>
 
 <section class="panel glass warn-panel">
-    <h2 class="panel-title">⚠️ <?= e(t('危险操作确认')) ?></h2>
+    <h2 class="panel-title"><?= ui_icon('warning') ?> <?= e(t('危险操作确认')) ?></h2>
     <p><?= e(t('当前数据库包含：')) ?><strong><?= $catCount ?></strong> <?= e(t('个分类、')) ?><strong><?= $linkCount ?></strong> <?= e(t('条链接，累计点击')) ?> <strong><?= number_format($totalClicks) ?></strong> <?= e(t('次。')) ?></p>
     <p class="danger-text"><?= e(t('两个动作均')) ?><strong><?= e(t('不可恢复')) ?></strong>，<?= e(t('点击后需在弹窗中填写必要数据并完成二次确认（勾选知晓 + 输入「清空」）才会真正执行。')) ?></p>
 

@@ -88,10 +88,11 @@ $theme    = theme_preference();
 <title><?= e(t('注册管理账号 ·')) ?> <?= $siteName ?></title>
 <?= favicon_html('../assets/') ?>
 <style>
-html:not([data-loaded]) { background:#faf1dd; }
-html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
+html:not([data-loaded]) { background:#f8fafc; }
+html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
 </style>
 <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/workspace.css">
 </head>
 <body class="auth-body">
 <div class="auth-shell">
@@ -112,7 +113,7 @@ html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
             <div class="auth-language"><?= language_switch_html() ?></div>
             <div class="auth-card-head">
                 <span class="auth-badge"><?= e(t('创建账号')) ?></span>
-                <h2 class="auth-title" id="authTitle"><?= $openRegister ? t('注册管理账号') : t('注册已关闭') ?></h2>
+                <h1 class="auth-title" id="authTitle"><?= $openRegister ? t('注册管理账号') : t('注册已关闭') ?></h1>
                 <p class="auth-sub">
                     <?= $openRegister
                         ? t('用户名 3–20 位，密码不少于 6 位。')

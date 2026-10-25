@@ -323,7 +323,7 @@ $iconStats = icon_cache_stats($db);
         <input type="hidden" name="action" value="icon_refresh_all">
         <input type="hidden" name="ret_cat" value="<?= $filterCat ?>">
         <input type="hidden" name="ret_page" value="<?= $page ?>">
-        <button type="submit" class="btn-ghost btn-sm" id="iconRefreshAll">🔄 <?= e(t('刷新全部图标')) ?></button>
+        <button type="submit" class="btn-ghost btn-sm" id="iconRefreshAll"><?= ui_icon('refresh') ?> <?= e(t('刷新全部图标')) ?></button>
     </form>
 </div>
 
@@ -337,16 +337,16 @@ $iconStats = icon_cache_stats($db);
 // 轻量统计卡：已在上方按筛选总范围算出 $totalLinks / $statOn / $statOff
 ?>
 <div class="mini-stats is-four">
-    <div class="mini-stat"><span class="ms-ico">🔗</span><div><div class="ms-num"><?= $totalLinks ?></div><div class="ms-label"><?= e(t('当前列表链接')) ?></div></div></div>
-    <div class="mini-stat"><span class="ms-ico">✅</span><div><div class="ms-num"><?= $statOn ?></div><div class="ms-label"><?= e(t('启用中')) ?></div></div></div>
-    <div class="mini-stat"><span class="ms-ico">⏸️</span><div><div class="ms-num"><?= $statOff ?></div><div class="ms-label"><?= e(t('已停用')) ?></div></div></div>
-    <div class="mini-stat"><span class="ms-ico">🖼️</span><div><div class="ms-num"><?= $iconStats['cached'] ?>/<?= $iconStats['total'] ?></div><div class="ms-label"><?= e(t('已缓存图标')) ?></div></div></div>
+    <div class="mini-stat"><span class="ms-ico"><?= ui_icon('link') ?></span><div><div class="ms-num"><?= $totalLinks ?></div><div class="ms-label"><?= e(t('当前列表链接')) ?></div></div></div>
+    <div class="mini-stat"><span class="ms-ico"><?= ui_icon('check') ?></span><div><div class="ms-num"><?= $statOn ?></div><div class="ms-label"><?= e(t('启用中')) ?></div></div></div>
+    <div class="mini-stat"><span class="ms-ico"><?= ui_icon('pause') ?></span><div><div class="ms-num"><?= $statOff ?></div><div class="ms-label"><?= e(t('已停用')) ?></div></div></div>
+    <div class="mini-stat"><span class="ms-ico"><?= ui_icon('image') ?></span><div><div class="ms-num"><?= $iconStats['cached'] ?>/<?= $iconStats['total'] ?></div><div class="ms-label"><?= e(t('已缓存图标')) ?></div></div></div>
 </div>
 
 <div class="two-col two-col-form">
     <!-- 左侧：表单 -->
-    <section class="panel glass">
-        <h2 class="panel-title"><?= $editing ? t('编辑链接') : t('新增链接') ?></h2>
+    <details class="panel glass editor-panel" open data-editing="<?= $editing ? '1' : '0' ?>">
+        <summary class="panel-title"><?= $editing ? t('编辑链接') : t('新增链接') ?></summary>
         <form method="post" action="index.php" class="form-stack">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="save">
@@ -366,7 +366,7 @@ $iconStats = icon_cache_stats($db);
 
             <label class="field-label"><?= e(t('标题 *')) ?></label>
             <input class="form-input" name="title" required maxlength="60"
-                   value="<?= e($editing['title'] ?? '') ?>" placeholder="<?= e(t('如：企业微信')) ?>">
+                   value="<?= e($editing['title'] ?? '') ?>" placeholder="<?= e(t('如：项目仓库')) ?>">
 
             <label class="field-label" for="title_en"><?= e(t('标题（英文）')) ?></label>
             <input class="form-input" id="title_en" name="title_en" maxlength="60" value="<?= e($editing['title_en'] ?? '') ?>" placeholder="<?= e(t('可选，留空时显示中文内容')) ?>">
@@ -382,9 +382,7 @@ $iconStats = icon_cache_stats($db);
             <label class="field-label" for="description_en"><?= e(t('描述（英文）')) ?></label>
             <input class="form-input" id="description_en" name="description_en" maxlength="200" value="<?= e($editing['description_en'] ?? '') ?>" placeholder="<?= e(t('可选，留空时显示中文内容')) ?>">
 
-            <label class="field-label"><?= e(t('图标（emoji / unicode，可选）')) ?></label>
-            <input class="form-input" name="icon" maxlength="16"
-                   value="<?= e($editing['icon'] ?? '') ?>" placeholder="<?= e(t('如：')) ?>🐙">
+            <input type="hidden" name="icon" value="<?= e($editing['icon'] ?? '') ?>">
 
             <label class="field-label"><?= e(t('排序值（数字越小越靠前）')) ?></label>
             <input class="form-input" name="sort_order" type="number" value="<?= $defaultSortOrder ?>">
@@ -401,7 +399,7 @@ $iconStats = icon_cache_stats($db);
                 <?php endif; ?>
             </div>
         </form>
-    </section>
+    </details>
 
     <!-- 右侧：链接列表 -->
     <section class="panel glass">
@@ -416,7 +414,7 @@ $iconStats = icon_cache_stats($db);
         </nav>
 
         <?php if (!$links): ?>
-            <div class="empty-tip"><span class="et-ico">🔗</span><p><?= e(t('当前筛选下暂无链接，请先在左侧新增。')) ?></p></div>
+            <div class="empty-tip"><span class="et-ico"><?= ui_icon('link') ?></span><p><?= e(t('当前筛选下暂无链接，请先在左侧新增。')) ?></p></div>
         <?php else: ?>
         <div class="table-wrap"><table class="data-table links-table">
             <thead>
@@ -429,7 +427,7 @@ $iconStats = icon_cache_stats($db);
                     $isFirst = $rank === 0;
                     $isLast  = $rank === $scopeTotal - 1;
                     // 图标预览：本地缓存命中走 <img>，否则用首字母渐变徽章兜底（与前台一致）
-                    $iconRel  = link_icon_url($link);
+                    $iconRel  = resource_icon_url($link);
                     $iconTip  = ($link['icon_status'] ?? '') === 'ok'
                         ? t('来源：') . icon_source_label((string)($link['icon_source'] ?? '')) . ('　' . t('抓取：')) . ((string)($link['icon_fetched_at'] ?? '') ?: '—')
                         : t('未缓存本地图标：') . ((string)($link['icon_note'] ?? '') ?: t('尚未抓取'));
@@ -454,7 +452,7 @@ $iconStats = icon_cache_stats($db);
                             <?php if ($iconRel !== ''): ?>
                                 <img src="../<?= e($iconRel) ?>" alt="" width="40" height="40" loading="lazy">
                             <?php else: ?>
-                                <span class="icon-letter" style="--badge-hue:<?= link_icon_hue($link) ?>"><?= e(link_icon_letter($link)) ?></span>
+                                <span class="icon-letter" style="--badge-hue:<?= link_icon_hue($link) ?>"><?= e(resource_initial($link)) ?></span>
                             <?php endif; ?>
                         </span>
                     </td>
@@ -465,14 +463,14 @@ $iconStats = icon_cache_stats($db);
                     <td class="td-center"><span class="badge <?= (int)$link['is_active'] === 1 ? 'badge-on' : 'badge-off' ?>"><?= (int)$link['is_active'] === 1 ? t('启用') : t('停用') ?></span></td>
                     <td>
                         <div class="row-actions">
-                            <a class="mini-btn" href="<?= e(edit_url($lid, $filterCat, $page)) ?>">✎ <?= e(t('编辑')) ?></a>
+                            <a class="mini-btn" href="<?= e(edit_url($lid, $filterCat, $page)) ?>"><?= ui_icon('edit') ?> <?= e(t('编辑')) ?></a>
                             <form method="post" action="index.php" class="inline-form icon-single-form">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="icon_refresh">
                                 <input type="hidden" name="id" value="<?= $lid ?>">
                                 <input type="hidden" name="ret_cat" value="<?= $filterCat ?>">
                                 <input type="hidden" name="ret_page" value="<?= $page ?>">
-                                <button type="submit" class="mini-btn" title="<?= e(t('重新抓取该链接的 favicon 并写入本地缓存')) ?>">🔄 <?= e(t('重抓')) ?></button>
+                                <button type="submit" class="mini-btn" title="<?= e(t('重新抓取该链接的 favicon 并写入本地缓存')) ?>"><?= ui_icon('refresh') ?> <?= e(t('重抓')) ?></button>
                             </form>
                             <form method="post" action="index.php" class="inline-form">
                                 <?= csrf_field() ?>
@@ -480,7 +478,7 @@ $iconStats = icon_cache_stats($db);
                                 <input type="hidden" name="id" value="<?= $lid ?>">
                                 <input type="hidden" name="ret_cat" value="<?= $filterCat ?>">
                                 <input type="hidden" name="ret_page" value="<?= $page ?>">
-                                <button type="submit" class="mini-<?= (int)$link['is_active'] === 1 ? 'ghost' : 'ok' ?>"><?= (int)$link['is_active'] === 1 ? ('⏸ ' . t('停用')) : ('▶ ' . t('启用')) ?></button>
+                                <button type="submit" class="mini-<?= (int)$link['is_active'] === 1 ? 'ghost' : 'ok' ?>"><?= (int)$link['is_active'] === 1 ? ('' . ui_icon('pause') . ' ' . t('停用')) : ('' . ui_icon('arrow') . ' ' . t('启用')) ?></button>
                             </form>
                             <form method="post" action="index.php" class="inline-form"
                                   onsubmit="<?= e('return confirm(' . json_encode(t('确定删除链接「{name}」吗？此操作不可恢复！', ['name' => localized_field($link, 'title')]), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ');') ?>">
@@ -489,7 +487,7 @@ $iconStats = icon_cache_stats($db);
                                 <input type="hidden" name="id" value="<?= $lid ?>">
                                 <input type="hidden" name="ret_cat" value="<?= $filterCat ?>">
                                 <input type="hidden" name="ret_page" value="<?= $page ?>">
-                                <button type="submit" class="mini-btn mini-danger">🗑 <?= e(t('删除')) ?></button>
+                                <button type="submit" class="mini-btn mini-danger"><?= ui_icon('trash') ?> <?= e(t('删除')) ?></button>
                             </form>
                         </div>
                     </td>

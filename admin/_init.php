@@ -67,47 +67,33 @@ function admin_header(string $title, string $activeNav = ''): void
 <title>' . e($title) . ' · ' . $siteName . '</title>
 ' . favicon_html('../assets/') . '
 <style>
-html:not([data-loaded]) { background:#faf1dd; }
-html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
+html:not([data-loaded]) { background:#f8fafc; }
+html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
 </style>
 <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/workspace.css">
 </head>
 <body class="app-body admin-body">';
 
     $items = [
-        'links'       => ['index.php',        ('🔗 ' . t('链接管理'))],
-        'categories'  => ['categories.php',   ('📂 ' . t('分类管理'))],
-        'vault'       => ['vault.php',        ('🔐 ' . t('密码保险箱'))],
-        'settings'    => ['settings.php',     ('⚙️ ' . t('站点设置'))],
-        'stats'       => ['stats.php',        ('📊 ' . t('点击统计'))],
-        'reset'       => ['reset.php',        ('♻️ ' . t('重置演示'))],
+        'links' => ['index.php', 'link', t('链接管理')],
+        'categories' => ['categories.php', 'folder', t('分类管理')],
+        'vault' => ['vault.php', 'lock', t('密码保险箱')],
+        'settings' => ['settings.php', 'settings', t('站点设置')],
+        'stats' => ['stats.php', 'chart', t('点击统计')],
+        'reset' => ['reset.php', 'reset', t('重置演示')],
     ];
-
-    echo '<header class="navbar glass">
-    <div class="container admin-topbar">
-        <div class="brand">
-            ' . logo_badge_html() . '
-            <div>
-                <div class="brand-name">' . $siteName . (' · ' . t('管理后台') . '</div>
-                <div class="brand-tag">' . t('内容维护与数据统计') . '</div>
-            </div>
-        </div>
-        <div class="admin-nav-center">
-            <nav class="admin-nav-inner" aria-label="' . t('后台主导航') . '">');
-    foreach ($items as $key => $item) {
-        $active = $key === $activeNav ? ' class="active"' : '';
-        echo '<a href="' . $item[0] . '"' . $active . '>' . $item[1] . '</a>';
+    echo '<header class="navbar workspace-navbar"><div class="container admin-topbar">
+        <a class="brand" href="index.php">' . logo_badge_html() . '<span class="brand-name">' . e(setting('logo_text')) . '</span></a>
+        <div class="navbar-actions"><a class="admin-link home-link" href="../index.php">' . ui_icon('home') . '<span>' . e(t('返回前台')) . '</span></a>'
+        . theme_toggle_html() . '<a class="admin-link signout-link" href="logout.php">' . ui_icon('logout') . '<span>' . e(t('退出')) . '</span></a></div>
+        </div></header>';
+    echo '<aside class="workspace-sidebar"><div class="sidebar-heading">' . e(t('管理工作台')) . '</div><nav class="workspace-nav" aria-label="' . e(t('后台主导航')) . '">';
+    foreach ($items as $key => [$url, $icon, $label]) {
+        $active = $key === $activeNav;
+        echo '<a href="' . $url . '"' . ($active ? ' class="active" aria-current="page"' : '') . '>' . ui_icon($icon) . '<span>' . e($label) . '</span></a>';
     }
-    echo ('</nav>
-        </div>
-        <div class="navbar-actions">
-            <a class="admin-link" href="../index.php">← ' . t('返回前台') . '</a>
-            ') . theme_toggle_html() . ('
-            <a class="admin-link danger-link" href="logout.php">' . t('退出') . '</a>
-        </div>
-    </div>
-</header>');
-
+    echo '</nav><div class="sidebar-note">' . e(t('内容维护与数据统计')) . '</div></aside>';
     echo '<main class="container admin-main">';
 
     $flash = $_SESSION['flash'] ?? null;

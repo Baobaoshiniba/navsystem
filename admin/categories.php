@@ -133,15 +133,15 @@ foreach ($cats as $c) {
 }
 ?>
 <div class="mini-stats">
-    <div class="mini-stat"><span class="ms-ico">📂</span><div><div class="ms-num"><?= count($cats) ?></div><div class="ms-label"><?= e(t('全部分类')) ?></div></div></div>
-    <div class="mini-stat"><span class="ms-ico">✅</span><div><div class="ms-num"><?= $cOn ?></div><div class="ms-label"><?= e(t('启用中')) ?></div></div></div>
-    <div class="mini-stat"><span class="ms-ico">⏸️</span><div><div class="ms-num"><?= $cOff ?></div><div class="ms-label"><?= e(t('已停用')) ?></div></div></div>
+    <div class="mini-stat"><span class="ms-ico"><?= ui_icon('folder') ?></span><div><div class="ms-num"><?= count($cats) ?></div><div class="ms-label"><?= e(t('全部分类')) ?></div></div></div>
+    <div class="mini-stat"><span class="ms-ico"><?= ui_icon('check') ?></span><div><div class="ms-num"><?= $cOn ?></div><div class="ms-label"><?= e(t('启用中')) ?></div></div></div>
+    <div class="mini-stat"><span class="ms-ico"><?= ui_icon('pause') ?></span><div><div class="ms-num"><?= $cOff ?></div><div class="ms-label"><?= e(t('已停用')) ?></div></div></div>
 </div>
 
 <div class="two-col two-col-form">
     <!-- 左侧：表单 -->
-    <section class="panel glass">
-        <h2 class="panel-title"><?= $editing ? t('编辑分类') : t('新增分类') ?></h2>
+    <details class="panel glass editor-panel" open data-editing="<?= $editing ? '1' : '0' ?>">
+        <summary class="panel-title"><?= $editing ? t('编辑分类') : t('新增分类') ?></summary>
         <form method="post" action="categories.php" class="form-stack">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="save">
@@ -154,9 +154,16 @@ foreach ($cats as $c) {
             <label class="field-label" for="name_en"><?= e(t('分类名称（英文）')) ?></label>
             <input class="form-input" id="name_en" name="name_en" maxlength="50" value="<?= e($editing['name_en'] ?? '') ?>" placeholder="<?= e(t('可选，留空时显示中文内容')) ?>">
 
-            <label class="field-label"><?= e(t('图标（emoji / unicode，可选）')) ?></label>
-            <input class="form-input" name="icon" maxlength="16"
-                   value="<?= e($editing['icon'] ?? '') ?>" placeholder="<?= e(t('如：')) ?>🧪">
+            <label class="field-label" for="category-icon"><?= e(t('分类图标')) ?></label>
+            <?php $legacyIcons = ['🤝' => 'users', '💻' => 'code', '🧪' => 'flask', '📚' => 'book'];
+                $currentIcon = $editing['icon'] ?? 'folder';
+                $currentIcon = $legacyIcons[$currentIcon] ?? $currentIcon;
+            ?>
+            <select class="form-input" id="category-icon" name="icon">
+                <?php foreach (['folder' => t('文件夹'), 'users' => t('小组协作'), 'code' => t('开发工具'), 'flask' => t('测试与质量'), 'book' => t('学习与报告')] as $value => $label): ?>
+                    <option value="<?= e($value) ?>" <?= $currentIcon === $value ? 'selected' : '' ?>><?= e($label) ?></option>
+                <?php endforeach; ?>
+            </select>
 
             <label class="field-label"><?= e(t('排序值（数字越小越靠前）')) ?></label>
             <input class="form-input" name="sort_order" type="number" value="<?= (int)($editing['sort_order'] ?? 0) ?>">
@@ -173,13 +180,13 @@ foreach ($cats as $c) {
                 <?php endif; ?>
             </div>
         </form>
-    </section>
+    </details>
 
     <!-- 右侧：分类列表 -->
     <section class="panel glass">
         <h2 class="panel-title"><?= e(t('分类列表（共')) ?> <?= count($cats) ?> <?= e(t('个）')) ?></h2>
         <?php if (!$cats): ?>
-            <div class="empty-tip"><span class="et-ico">📂</span><p><?= e(t('暂无分类，请先在左侧新增。')) ?></p></div>
+            <div class="empty-tip"><span class="et-ico"><?= ui_icon('folder') ?></span><p><?= e(t('暂无分类，请先在左侧新增。')) ?></p></div>
         <?php else: ?>
         <div class="table-wrap"><table class="data-table cats-table">
             <thead>
@@ -200,25 +207,25 @@ foreach ($cats as $c) {
                             </div>
                         </form>
                     </td>
-                    <td class="cell-icon"><?= e($cat['icon'] ?: '📁') ?></td>
+                    <td class="cell-icon"><?= category_symbol($cat) ?></td>
                     <td class="cell-name"><?= e(localized_field($cat, 'name')) ?></td>
                     <td class="td-center"><span class="cat-chip <?= (int)$cat['link_count'] > 0 ? '' : 'gray' ?>"><?= (int)$cat['link_count'] ?> <?= e(t('条')) ?></span></td>
                     <td class="td-center"><span class="badge <?= (int)$cat['is_active'] === 1 ? 'badge-on' : 'badge-off' ?>"><?= (int)$cat['is_active'] === 1 ? t('启用') : t('停用') ?></span></td>
                     <td>
                         <div class="row-actions">
-                            <a class="mini-btn" href="categories.php?edit=<?= $cid ?>">✎ <?= e(t('编辑')) ?></a>
+                            <a class="mini-btn" href="categories.php?edit=<?= $cid ?>"><?= ui_icon('edit') ?> <?= e(t('编辑')) ?></a>
                             <form method="post" action="categories.php" class="inline-form">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="toggle">
                                 <input type="hidden" name="id" value="<?= $cid ?>">
-                                <button type="submit" class="mini-<?= (int)$cat['is_active'] === 1 ? 'ghost' : 'ok' ?>"><?= (int)$cat['is_active'] === 1 ? ('⏸ ' . t('停用')) : ('▶ ' . t('启用')) ?></button>
+                                <button type="submit" class="mini-<?= (int)$cat['is_active'] === 1 ? 'ghost' : 'ok' ?>"><?= (int)$cat['is_active'] === 1 ? ('' . ui_icon('pause') . ' ' . t('停用')) : ('' . ui_icon('arrow') . ' ' . t('启用')) ?></button>
                             </form>
                             <form method="post" action="categories.php" class="inline-form"
                                   onsubmit="<?= e('return confirm(' . json_encode(t('确定删除分类「{name}」及其下 {count} 条链接吗？此操作不可恢复！', ['name' => localized_field($cat, 'name'), 'count' => (int)$cat['link_count']]), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ');') ?>">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?= $cid ?>">
-                                <button type="submit" class="mini-btn mini-danger">🗑 <?= e(t('删除')) ?></button>
+                                <button type="submit" class="mini-btn mini-danger"><?= ui_icon('trash') ?> <?= e(t('删除')) ?></button>
                             </form>
                         </div>
                     </td>

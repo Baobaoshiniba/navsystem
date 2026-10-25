@@ -51,17 +51,17 @@ $fmt = function ($v): string {
 </div>
 
 <div class="stat-cards">
-    <div class="stat-card glass"><span class="sc-ico">🔗</span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['total_links']) ?></div><div class="stat-label"><?= e(t('导航链接总数')) ?></div></div></div>
+    <div class="stat-card glass"><span class="sc-ico"><?= ui_icon('link') ?></span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['total_links']) ?></div><div class="stat-label"><?= e(t('导航链接总数')) ?></div></div></div>
     <div class="stat-card glass"><span class="sc-ico">👆</span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['total_clicks']) ?></div><div class="stat-label"><?= e(t('累计点击')) ?></div></div></div>
-    <div class="stat-card glass"><span class="sc-ico">📊</span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['avg_clicks']) ?></div><div class="stat-label"><?= e(t('平均点击数')) ?></div></div></div>
-    <div class="stat-card glass"><span class="sc-ico">🏆</span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['max_clicks']) ?></div><div class="stat-label"><?= e(t('最高单链接点击')) ?></div></div></div>
+    <div class="stat-card glass"><span class="sc-ico"><?= ui_icon('chart') ?></span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['avg_clicks']) ?></div><div class="stat-label"><?= e(t('平均点击数')) ?></div></div></div>
+    <div class="stat-card glass"><span class="sc-ico"><?= ui_icon('chart') ?></span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['max_clicks']) ?></div><div class="stat-label"><?= e(t('最高单链接点击')) ?></div></div></div>
 </div>
 
 <div class="two-col stats-split">
     <section class="panel glass">
         <h2 class="panel-title"><?= e(t('分类点击分布')) ?></h2>
         <?php if (!$byCategory): ?>
-            <div class="empty-tip"><span class="et-ico">📊</span><p><?= e(t('暂无分类点击数据')) ?></p></div>
+            <div class="empty-tip"><span class="et-ico"><?= ui_icon('chart') ?></span><p><?= e(t('暂无分类点击数据')) ?></p></div>
         <?php else: ?>
         <?php $maxCat = max(array_map(fn($r) => (int)$r['clicks'], $byCategory) ?: [1]); ?>
         <ul class="bar-list">
@@ -82,7 +82,7 @@ $fmt = function ($v): string {
     <section class="panel glass">
         <h2 class="panel-title"><?= e(t('链接点击 TOP')) ?></h2>
         <?php if (!$topLinks): ?>
-            <div class="empty-tip"><span class="et-ico">🏆</span><p><?= e(t('暂无链接点击数据')) ?></p></div>
+            <div class="empty-tip"><span class="et-ico"><?= ui_icon('chart') ?></span><p><?= e(t('暂无链接点击数据')) ?></p></div>
         <?php else: ?>
         <div class="table-wrap"><table class="data-table stats-table">
             <thead><tr><th>#</th><th><?= e(t('链接')) ?></th><th><?= e(t('分类')) ?></th><th><?= e(t('点击')) ?></th></tr></thead>

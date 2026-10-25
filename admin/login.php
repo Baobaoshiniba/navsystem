@@ -69,10 +69,11 @@ $openRegister = register_enabled();
 <title><?= e(t('管理后台登录 ·')) ?> <?= $siteName ?></title>
 <?= favicon_html('../assets/') ?>
 <style>
-html:not([data-loaded]) { background:#faf1dd; }
-html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
+html:not([data-loaded]) { background:#f8fafc; }
+html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
 </style>
 <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/workspace.css">
 </head>
 <body class="auth-body">
 <div class="auth-shell">
@@ -93,7 +94,7 @@ html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
             <div class="auth-language"><?= language_switch_html() ?></div>
             <div class="auth-card-head">
                 <span class="auth-badge"><?= e(t('管理后台')) ?></span>
-                <h2 class="auth-title" id="authTitle"><?= e(t('欢迎回来')) ?></h2>
+                <h1 class="auth-title" id="authTitle"><?= e(t('欢迎回来')) ?></h1>
                 <p class="auth-sub"><?= e(t('请使用管理员账号登录，继续维护你的导航页。')) ?></p>
             </div>
 

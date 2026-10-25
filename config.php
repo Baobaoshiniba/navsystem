@@ -12,6 +12,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/lib/i18n.php';
+require_once __DIR__ . '/lib/ui.php';
 
 // 站点基本配置（亦是站点设置默认文案；前台实际展示文案可在后台「站点设置」中覆盖）
 $config = [
@@ -937,8 +938,8 @@ function theme_preference(): string
 /**
  * 统一页面头部（含主题初始化脚本与 favicon）
  *
- * FOUC 防护：无 data-loaded 时，light 默认 #faf1dd（淡奶酪黄暖调）、dark 用户（服务端已按 cookie 输出
- * data-theme="dark"）#0b1220，避免 CSS 加载前的白闪/暗闪。
+ * FOUC 防护：无 data-loaded 时，light 默认 #f8fafc（淡奶酪黄暖调）、dark 用户（服务端已按 cookie 输出
+ * data-theme="dark"）#111827，避免 CSS 加载前的白闪/暗闪。
  */
 function page_header(string $title): void
 {
@@ -952,10 +953,11 @@ function page_header(string $title): void
 <title>' . e(t($title)) . ' · ' . $siteName . '</title>
 ' . favicon_html('assets/') . '
 <style>
-html:not([data-loaded]) { background:#faf1dd; }
-html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
+html:not([data-loaded]) { background:#f8fafc; }
+html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
 </style>
 <link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/workspace.css">
 </head>';
 }
 
@@ -985,12 +987,7 @@ function favicon_html(string $prefix): string
  */
 function logo_badge_html(): string
 {
-    return '<span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 48 48">
-<defs><linearGradient id="lbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
-<rect x="2" y="2" width="44" height="44" rx="13" fill="url(#lbg)"/>
-<circle cx="24" cy="24" r="12.5" fill="none" stroke="#ffffff" stroke-opacity="0.92" stroke-width="3"/>
-<polygon points="24,13.5 28.4,24 24,34.5 19.6,24" fill="#ffffff"/>
-<circle cx="24" cy="24" r="2.6" fill="#38bdf8"/></svg></span>';
+    return '<span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#2563eb"/><rect x="7" y="7" width="7" height="7" rx="1.5" fill="white"/><rect x="18" y="7" width="7" height="7" rx="1.5" fill="white"/><rect x="7" y="18" width="7" height="7" rx="1.5" fill="white"/><path d="M18 21.5h7m-3.5-3.5v7" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></span>';
 }
 
 /**
@@ -1046,7 +1043,7 @@ function auth_brand_html(string $title, string $subtitle, array $points = [], st
  */
 function page_footer(string $base = ''): void
 {
-    echo '<script src="' . $base . 'assets/js/i18n.js"></script><script src="' . $base . 'assets/js/theme.js"></script>
+    echo '<script src="' . $base . 'assets/js/i18n.js"></script><script src="' . $base . 'assets/js/theme.js"></script><script src="' . $base . 'assets/js/workspace.js"></script>
 </body>
 </html>';
 }

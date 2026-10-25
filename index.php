@@ -30,7 +30,6 @@ $links = $db->query('
     ORDER BY c.sort_order ASC, c.id ASC, l.sort_order ASC, l.id ASC
 ')->fetchAll();
 
-$categoryColors = ['#5b8cff', '#a97bff', '#00c6b4', '#ff9f45', '#ff6b8b', '#36d1dc', '#ffc53d', '#6c5ce7'];
 $grouped = [];
 foreach ($links as $link) {
     $grouped[$link['category_id']][] = $link;
@@ -51,26 +50,12 @@ $footerText = setting('footer_text');
 echo '<body class="app-body">';
 
 /* ============ 顶栏 ============ */
-echo '<header class="navbar glass">
+echo '<header class="navbar workspace-navbar">
     <div class="container navbar-inner">
-        <div class="brand">
-            ' . logo_badge_html() . '
-            <div>
-                <div class="brand-name">' . e(setting('logo_text')) . '</div>
-                <div class="brand-tag">' . e(setting('site_slogan')) . ('</div>
-            </div>
-        </div>
-        <div class="navbar-actions">
-            <div class="stats-chip" title="' . t('分类 / 链接 / 累计点击') . '">
-                <span>📂 ') . $totalCategories . '</span>
-                <span>🔗 ' . $totalLinks . '</span>
-                <span>👆 ' . number_format($totalClicks) . '</span>
-            </div>
-            ' . theme_toggle_html() . ('
-            <a class="admin-link" href="admin/login.php" title="' . t('管理后台') . '">' . t('后台管理') . '</a>
-        </div>
+        <a class="brand" href="index.php">' . logo_badge_html() . '<span class="brand-name">' . e(setting('logo_text')) . '</span></a>
+        <div class="navbar-actions">' . theme_toggle_html() . '<a class="admin-link" href="admin/login.php">' . ui_icon('settings') . '<span>' . e(t('后台管理')) . '</span></a></div>
     </div>
-</header>');
+</header>';
 
 /* 引擎胶囊标签条：先拼接 HTML，避免在 echo 字符串中嵌入 PHP 标签 */
 $enginePillsHtml = '';
@@ -88,15 +73,13 @@ foreach ($engines as $eng) {
 
 /* ============ 主视觉区 ============ */
 echo '<section class="hero">
-    <div class="hero-glow hero-glow-a"></div>
-    <div class="hero-glow hero-glow-b"></div>
     <div class="container hero-inner">
-        <h1 class="hero-title"><span class="grad-text">' . e(setting('site_name')) . '</span></h1>
-        <p class="hero-sub">' . e(setting('site_slogan')) . ('</p>
+        <div class="hero-copy"><h1 class="hero-title"><span>' . e(setting('site_name')) . '</span></h1>
+        <p class="hero-sub">' . e(setting('site_slogan')) . ('</p></div>
         <div class="agg-search" role="search" aria-label="' . t('聚合搜索') . '">
             <div class="engine-strip" id="engineStrip" role="tablist" aria-label="' . t('选择搜索引擎') . '">') . $enginePillsHtml . '</div>
             <form class="agg-form" id="aggForm" role="search">
-                <span class="agg-icon" aria-hidden="true">🔍</span>
+                <span class="agg-icon" aria-hidden="true">' . ui_icon('search') . '</span>
                 <input type="search" id="aggInput" class="agg-input" name="q"
                        placeholder="' . e(search_input_placeholder($defaultEngine)) . '"
                        aria-label="' . e(t($defaultEngine)) . (' ' . t('搜索关键词') . '" autocomplete="off" enterkeyhint="search">
@@ -106,6 +89,9 @@ echo '<section class="hero">
         </div>
     </div>
 </section>');
+
+/* ============ Resource overview ============ */
+echo '<div class="container resources-heading"><h2>' . e(t('全部资源')) . '</h2><p>' . e(t('{categories} 个分类 · {links} 个资源', ['categories' => $totalCategories, 'links' => $totalLinks])) . '</p></div>';
 
 /* ============ 分类筛选条 ============ */
 if ($cats) {
@@ -124,23 +110,20 @@ if ($cats) {
 /* ============ 导航卡片区 ============ */
 echo '<main class="container main-area">';
 echo ('<div class="filter-empty is-hidden" id="filterEmptyTip" role="status">' . t('该分类下暂无启用的导航链接') . '</div>');
-$catIndex = 0;
 foreach ($cats as $cat):
     $cid = (int)$cat['id'];
     $hasLinks = isset($grouped[$cid]) && count($grouped[$cid]) > 0;
-    $color = $categoryColors[$catIndex % count($categoryColors)];
-    $catIndex++;
 ?>
 <section class="category-block" id="cat-<?= $cid ?>" data-cat="<?= $cid ?>" data-name="<?= e(localized_field($cat, 'name')) ?>"
          data-count="<?= $hasLinks ? count($grouped[$cid]) : 0 ?>">
     <div class="category-head">
-        <span class="cat-icon" style="background:<?= $color ?>1f;border-color:<?= $color ?>55"><?= e($cat['icon'] ?: '📁') ?></span>
-        <h2 class="cat-title" style="color:<?= $color ?>"><?= e(localized_field($cat, 'name')) ?></h2>
+        <span class="cat-icon"><?= category_symbol($cat) ?></span>
+        <h2 class="cat-title"><?= e(localized_field($cat, 'name')) ?></h2>
         <span class="cat-count"><?= e(item_count($hasLinks ? count($grouped[$cid]) : 0)) ?></span>
     </div>
 
     <?php if (!$hasLinks): ?>
-        <div class="empty-tip"><?= e(t('该分类下暂无启用的导航链接')) ?></div>
+        <div class="empty-tip category-empty"><?= e(t('该分类下暂无启用的导航链接')) ?></div>
     <?php else: ?>
         <div class="link-grid">
             <?php foreach ($grouped[$cid] as $link): ?>
@@ -148,9 +131,8 @@ foreach ($cats as $cat):
                 $safeUrl    = e($link['url']);
                 $ext        = preg_match('#^https?://#i', $link['url']) ? ' target="_blank" rel="noopener noreferrer"' : '';
                 // 图标：本地缓存 favicon 优先，其次回退首字母渐变徽章（三级抓取的最终兜底）
-                $iconUrl    = link_icon_url($link);
-                $iconLetter = link_icon_letter($link);
-                $iconHue    = link_icon_hue($link);
+                $iconUrl    = resource_icon_url($link);
+                $iconLetter = resource_initial($link);
                 $domain     = icon_display_host((string)$link['url']);
                 ?>
                 <a href="<?= $safeUrl ?>"<?= $ext ?> class="link-card"
@@ -164,7 +146,7 @@ foreach ($cats as $cat):
                                 <img src="<?= e($iconUrl) ?>" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                             </span>
                         <?php else: ?>
-                            <span class="link-icon link-icon-fallback" style="--badge-hue:<?= (int)$iconHue ?>">
+                            <span class="link-icon link-icon-fallback">
                                 <span class="link-letter"><?= e($iconLetter) ?></span>
                             </span>
                         <?php endif; ?>
@@ -177,9 +159,9 @@ foreach ($cats as $cat):
                     </span>
                     <span class="link-desc"><?= e(localized_field($link, 'description') !== '' ? localized_field($link, 'description') : t('暂无描述')) ?></span>
                     <span class="link-card-foot">
-                        <span class="link-badge link-badge-cat" style="--badge-tone:<?= e($color) ?>"><?= e(localized_field($cat, 'name')) ?></span>
-                        <span class="link-count" title="<?= e(t('点击次数')) ?>">👆 <?= (int)$link['click_count'] ?></span>
-                        <span class="link-arrow" aria-hidden="true">↗</span>
+                        <span class="link-badge link-badge-cat"><?= e(localized_field($cat, 'name')) ?></span>
+                        <span class="link-count" title="<?= e(t('点击次数')) ?>"><?= ui_icon('eye') ?><span class="click-value"><?= (int)$link['click_count'] ?></span></span>
+                        <span class="link-arrow" aria-hidden="true"><?= ui_icon('external') ?></span>
                     </span>
                 </a>
             <?php endforeach; ?>
@@ -216,10 +198,11 @@ function recordClick(id, ev) {
     if (card) {
         var n = card.querySelector('.link-count');
         if (n) {
-            var m = n.textContent.match(/👆\s*([\d,]+)/);
+            var count = n.querySelector('.click-value');
+            var m = count && count.textContent.match(/([\d,]+)/);
             if (m) {
                 var v = parseInt(m[1].replace(/,/g, ''), 10) + 1;
-                n.textContent = '👆 ' + v.toLocaleString();
+                count.textContent = v.toLocaleString(document.documentElement.lang);
             }
         }
     }
@@ -344,17 +327,6 @@ function recordClick(id, ev) {
 
     apply(currentCat(), false);
 })();
-</script>
-
-<!-- 卡片光效跟随鼠标 -->
-<script>
-document.querySelectorAll('.link-card').forEach(function (card) {
-    card.addEventListener('mousemove', function (e) {
-        var r = card.getBoundingClientRect();
-        card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
-        card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
-    });
-});
 </script>
 
 <?php

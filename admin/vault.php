@@ -244,7 +244,7 @@ admin_header(t('密码保险箱'), 'vault');
 
     <?php if ($unlocked): ?>
         <div class="vault-session">
-            <span class="vault-timer" id="vaultTimer" data-remaining="<?= vault_remaining_seconds() ?>" data-timeout="<?= VAULT_IDLE_TIMEOUT ?>" role="status">🔓 <?= e(t('已解锁')) ?></span>
+            <span class="vault-timer" id="vaultTimer" data-remaining="<?= vault_remaining_seconds() ?>" data-timeout="<?= VAULT_IDLE_TIMEOUT ?>" role="status"><?= ui_icon('lock') ?> <?= e(t('已解锁')) ?></span>
             <form method="post" action="vault.php" class="inline-form">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="lock">
@@ -258,7 +258,7 @@ admin_header(t('密码保险箱'), 'vault');
 <?php if (!$masterSet): /* ============ 一、首次设置主密码 ============ */ ?>
 
     <section class="panel glass vault-gate">
-        <div class="vault-gate-ico" aria-hidden="true">🔐</div>
+        <div class="vault-gate-ico" aria-hidden="true"><?= ui_icon('lock') ?></div>
         <h2 class="vault-gate-title"><?= e(t('首次使用：设置主密码')) ?></h2>
         <p class="vault-gate-desc"><?= e(t('主密码是保险箱唯一的钥匙，用于派生加密密钥。它本身只以 Argon2id 校验哈希保存，不存明文，也不写入任何文件。')) ?></p>
         <ul class="vault-gate-points">
@@ -277,7 +277,7 @@ admin_header(t('密码保险箱'), 'vault');
                     <input class="form-input" type="password" id="vaultMaster1" name="master_password"
                            minlength="<?= VAULT_MIN_MASTER_LEN ?>" maxlength="200" required
                            autocomplete="new-password" placeholder="<?= e(t('至少')) ?> <?= VAULT_MIN_MASTER_LEN ?> <?= e(t('位')) ?>">
-                    <button type="button" class="mini-btn" data-vault-toggle="vaultMaster1">👁 <?= e(t('显示')) ?></button>
+                    <button type="button" class="mini-btn" data-vault-toggle="vaultMaster1" aria-pressed="false"><?= ui_icon('eye') ?><span data-toggle-label><?= e(t('显示')) ?></span></button>
                 </div>
                 <div class="vault-strength" data-vault-strength="vaultMaster1" data-level="0">
                     <div class="vs-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -291,7 +291,7 @@ admin_header(t('密码保险箱'), 'vault');
                     <input class="form-input" type="password" id="vaultMaster2" name="master_password2"
                            minlength="<?= VAULT_MIN_MASTER_LEN ?>" maxlength="200" required
                            autocomplete="new-password" placeholder="<?= e(t('再次输入主密码')) ?>">
-                    <button type="button" class="mini-btn" data-vault-toggle="vaultMaster2">👁 <?= e(t('显示')) ?></button>
+                    <button type="button" class="mini-btn" data-vault-toggle="vaultMaster2" aria-pressed="false"><?= ui_icon('eye') ?><span data-toggle-label><?= e(t('显示')) ?></span></button>
                 </div>
                 <p class="field-hint"><?= e(t('两次输入需完全一致；主密码不会以任何形式落盘。')) ?></p>
             </div>
@@ -305,7 +305,7 @@ admin_header(t('密码保险箱'), 'vault');
 <?php elseif (!$unlocked): /* ============ 二、已设置但未解锁 ============ */ ?>
 
     <section class="panel glass vault-gate">
-        <div class="vault-gate-ico" aria-hidden="true">🔒</div>
+        <div class="vault-gate-ico" aria-hidden="true"><?= ui_icon('lock') ?></div>
         <h2 class="vault-gate-title"><?= e(t('保险箱已锁定')) ?></h2>
         <p class="vault-gate-desc"><?= e(t('请输入主密码解锁。解锁后')) ?> <?= (int)(VAULT_IDLE_TIMEOUT / 60) ?> <?= e(t('分钟无操作会自动锁定，也可随时点击「立即锁定」。')) ?></p>
 
@@ -318,7 +318,7 @@ admin_header(t('密码保险箱'), 'vault');
                 <div class="vault-input-group">
                     <input class="form-input" type="password" id="vaultMasterUnlock" name="master_password"
                            maxlength="200" required autocomplete="current-password" placeholder="<?= e(t('输入主密码')) ?>">
-                    <button type="button" class="mini-btn" data-vault-toggle="vaultMasterUnlock">👁 <?= e(t('显示')) ?></button>
+                    <button type="button" class="mini-btn" data-vault-toggle="vaultMasterUnlock" aria-pressed="false"><?= ui_icon('eye') ?><span data-toggle-label><?= e(t('显示')) ?></span></button>
                 </div>
             </div>
 
@@ -336,15 +336,15 @@ admin_header(t('密码保险箱'), 'vault');
 <?php else: /* ============ 三、已解锁主界面 ============ */ ?>
 
     <div class="mini-stats">
-        <div class="mini-stat"><span class="ms-ico">🗂️</span><div><div class="ms-num"><?= $stats['total'] ?></div><div class="ms-label"><?= e(t('保险箱条目')) ?></div></div></div>
-        <div class="mini-stat"><span class="ms-ico">👤</span><div><div class="ms-num"><?= $stats['with_login'] ?></div><div class="ms-label"><?= e(t('含账号条目')) ?></div></div></div>
-        <div class="mini-stat"><span class="ms-ico">🏷️</span><div><div class="ms-num"><?= $stats['categories'] ?></div><div class="ms-label"><?= e(t('已用分类')) ?></div></div></div>
+        <div class="mini-stat"><span class="ms-ico"><?= ui_icon('folder') ?></span><div><div class="ms-num"><?= $stats['total'] ?></div><div class="ms-label"><?= e(t('保险箱条目')) ?></div></div></div>
+        <div class="mini-stat"><span class="ms-ico"><?= ui_icon('users') ?></span><div><div class="ms-num"><?= $stats['with_login'] ?></div><div class="ms-label"><?= e(t('含账号条目')) ?></div></div></div>
+        <div class="mini-stat"><span class="ms-ico"><?= ui_icon('folder') ?></span><div><div class="ms-num"><?= $stats['categories'] ?></div><div class="ms-label"><?= e(t('已用分类')) ?></div></div></div>
     </div>
 
     <div class="two-col two-col-form vault-layout">
         <!-- 左栏：新增 / 编辑表单 -->
         <section class="panel glass">
-            <h2 class="panel-title"><?= $editing ? ('✎ ' . t('编辑条目')) : ('＋ ' . t('新增条目')) ?></h2>
+            <h2 class="panel-title"><?= $editing ? ('' . ui_icon('edit') . ' ' . t('编辑条目')) : ('＋ ' . t('新增条目')) ?></h2>
 
             <form method="post" action="vault.php" class="form-stack" id="vaultItemForm" autocomplete="off"
                   data-unlocked="<?= $unlocked ? '1' : '0' ?>">
@@ -381,7 +381,7 @@ admin_header(t('密码保险箱'), 'vault');
                     <div class="vault-input-group">
                         <input class="form-input" type="password" id="v-password" name="password" maxlength="200"
                                autocomplete="new-password" placeholder="<?= $editing ? t('留空表示不修改已存密码') : t('留空表示暂不保存密码') ?>">
-                        <button type="button" class="mini-btn" data-vault-toggle="v-password">👁 <?= e(t('显示')) ?></button>
+                        <button type="button" class="mini-btn" data-vault-toggle="v-password" aria-pressed="false"><?= ui_icon('eye') ?><span data-toggle-label><?= e(t('显示')) ?></span></button>
                         <button type="button" class="mini-btn" id="vaultGenPwd" data-vault-target="v-password">🎲 <?= e(t('生成')) ?></button>
                     </div>
                     <div class="vault-strength" data-vault-strength="v-password" data-level="0">
@@ -417,7 +417,7 @@ admin_header(t('密码保险箱'), 'vault');
         <!-- 右栏：列表 -->
         <section class="panel glass">
             <div class="vault-list-head">
-                <h2 class="panel-title">🗝️ <?= e(t('条目列表')) ?><?= $list['total'] > 0 ? ('（' . t('共') . ' ') . $list['total'] . (' ' . t('条）')) : '' ?></h2>
+                <h2 class="panel-title"><?= ui_icon('key') ?> <?= e(t('条目列表')) ?><?= $list['total'] > 0 ? ('（' . t('共') . ' ') . $list['total'] . (' ' . t('条）')) : '' ?></h2>
                 <form method="get" action="vault.php" class="vault-search" role="search">
                     <input class="form-input" type="search" name="q" value="<?= e($q) ?>"
                            placeholder="<?= e(t('搜索标题 / 网址 / 账号 / 备注 / 分类')) ?>" aria-label="<?= e(t('搜索保险箱条目')) ?>">
@@ -436,7 +436,7 @@ admin_header(t('密码保险箱'), 'vault');
 
             <?php if (!$list['rows']): ?>
                 <div class="empty-tip">
-                    <span class="et-ico">🗃️</span>
+                    <span class="et-ico"><?= ui_icon('folder') ?></span>
                     <p><strong><?= ($q !== '' || $filterCat !== '') ? t('没有匹配的条目') : t('保险箱还是空的') ?></strong></p>
                     <p><?= ($q !== '' || $filterCat !== '') ? t('换个关键字或清空筛选再试试。') : t('在左侧填写标题与网址，即可把账号密码加密存入。') ?></p>
                 </div>
@@ -731,7 +731,9 @@ admin_header(t('密码保险箱'), 'vault');
             if (!input) { return; }
             var visible = input.type === 'text';
             input.type = visible ? 'password' : 'text';
-            toggle.textContent = visible ? ('👁 ' + <?= jt('显示') ?>) : ('🙈 ' + <?= jt('隐藏') ?>);
+            var label = toggle.querySelector('[data-toggle-label]');
+            if (label) label.textContent = visible ? <?= jt('显示') ?> : <?= jt('隐藏') ?>;
+            toggle.setAttribute('aria-pressed', visible ? 'false' : 'true');
         }
     });
 
@@ -804,7 +806,11 @@ admin_header(t('密码保险箱'), 'vault');
             input.value = chars.join('');
             input.type = 'text';   // 生成后直接可见，便于立即复制
             var toggle = document.querySelector('[data-vault-toggle="' + input.id + '"]');
-            if (toggle) { toggle.textContent = ('🙈 ' + <?= jt('隐藏') ?>); }
+            if (toggle) {
+                var label = toggle.querySelector('[data-toggle-label]');
+                if (label) label.textContent = <?= jt('隐藏') ?>;
+                toggle.setAttribute('aria-pressed', 'true');
+            }
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.focus();
             input.select();
@@ -822,7 +828,7 @@ admin_header(t('密码保险箱'), 'vault');
                 window.location.reload();
                 return;
             }
-            timerEl.textContent = ('🔓 ' + <?= jt('已解锁 ·') ?> + ' ') + pad(Math.floor(remaining / 60)) + ':' + pad(remaining % 60) + (' ' + <?= jt('后自动锁定') ?>);
+            timerEl.textContent = (<?= jt('已解锁 ·') ?> + ' ') + pad(Math.floor(remaining / 60)) + ':' + pad(remaining % 60) + (' ' + <?= jt('后自动锁定') ?>);
             remaining -= 1;
         };
         tick();
