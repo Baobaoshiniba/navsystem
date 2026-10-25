@@ -136,10 +136,10 @@ foreach ($cats as $cat):
                 $domain     = icon_display_host((string)$link['url']);
                 ?>
                 <a href="<?= $safeUrl ?>"<?= $ext ?> class="link-card"
+                   data-id="<?= (int)$link['id'] ?>"
                    data-name="<?= e(localized_field($link, 'title')) ?>"
                    data-desc="<?= e(localized_field($link, 'description')) ?>"
-                   data-url="<?= $safeUrl ?>"
-                   onclick="recordClick(<?= (int)$link['id'] ?>, event)">
+                   data-url="<?= $safeUrl ?>">
                     <span class="link-card-head">
                         <?php if ($iconUrl !== ''): ?>
                             <span class="link-icon">
@@ -183,8 +183,9 @@ foreach ($cats as $cat):
 </footer>
 
 <!-- 点击统计 -->
-<script>
-function recordClick(id, ev) {
+<script<?= nonce_attr() ?>>
+/* 点击上报：用事件委托替代内联 onclick，使页面能启用 CSP */
+function recordClick(id, card) {
     var url = 'track_click.php?id=' + encodeURIComponent(id);
     try {
         if (navigator.sendBeacon) { navigator.sendBeacon(url); }
@@ -194,7 +195,6 @@ function recordClick(id, ev) {
         }
     } catch (e) {}
     // 不阻塞跳转，计数仅作展示参考
-    var card = ev && ev.currentTarget;
     if (card) {
         var n = card.querySelector('.link-count');
         if (n) {
@@ -207,10 +207,17 @@ function recordClick(id, ev) {
         }
     }
 }
+document.addEventListener('click', function (ev) {
+    var target = ev.target;
+    if (!target || !target.closest) { return; }
+    var card = target.closest('.link-card');
+    if (!card) { return; }
+    recordClick(parseInt(card.getAttribute('data-id'), 10) || 0, card);
+}, false);
 </script>
 
 <!-- 聚合搜索：切换引擎 + 回车/点击跳转外部搜索引擎（关键词 encodeURIComponent 后替换 {q}） -->
-<script>
+<script<?= nonce_attr() ?>>
 (function () {
     var form = document.getElementById('aggForm');
     var input = document.getElementById('aggInput');
@@ -272,7 +279,7 @@ function recordClick(id, ev) {
 </script>
 
 <!-- 分类标签筛选：默认「全部」，状态写入 URL 参数 ?cat=，刷新/分享后保留 -->
-<script>
+<script<?= nonce_attr() ?>>
 (function () {
     var filter = document.getElementById('catFilter');
     if (!filter) { return; }

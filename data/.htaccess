@@ -1,0 +1,9 @@
+# 禁止通过 Web 直接访问运行时数据（SQLite 主库与备份）
+#
+# 这里是第二道防线：
+#   1) 本地开发 —— start.sh 通过 router.php 拦截（见项目根 router.php）
+#   2) Apache / LiteSpeed —— 本文件生效
+#   3) nginx —— 本文件无效，须参照 docs/deploy.md 配置 location 规则
+#
+# 请勿删除本文件：删掉后数据库可能再次可被 URL 直接下载。
+Require all denied

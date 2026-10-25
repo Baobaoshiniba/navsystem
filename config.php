@@ -1,6 +1,15 @@
 <?php
 /**
- * 公司导航页 - 全局配置文件
+ * 公司导航页 - 全局配置与核心基础设施
+ *
+ * 职责边界：
+ *  - 本文件：站点配置、数据库连接、站点设置读写、账号与角色、登录限流、会话与 CSRF、
+ *            点击统计防护、CSP 与安全响应头；
+ *  - lib/migrate.php：建表 / 加列 / 演示数据播种；
+ *  - lib/captcha.php：登录图形验证码（生成 / 校验 / 绘图）；
+ *  - lib/layout.php ：页面头尾、主题切换、品牌区渲染；
+ *  - lib/favicon.php：站点图标抓取与本地缓存；
+ *  - lib/i18n.php / lib/ui.php：语言选择与图标集。
  *
  * 说明：
  *  - 首次运行 index.php / admin/login.php 时会自动初始化 SQLite 数据库并写入演示数据；
@@ -11,8 +20,25 @@
 
 declare(strict_types=1);
 
+/**
+ * 项目根目录：lib/ 下的模块用它定位 data/、assets/ 等不在自身目录下的资源
+ * （那些文件里的 __DIR__ 指向 lib/，不能直接用）。
+ */
+define('NAV_ROOT', __DIR__);
+
 require_once __DIR__ . '/lib/i18n.php';
 require_once __DIR__ . '/lib/ui.php';
+
+// 以下三个模块已从本文件拆出，各自职责见文件头注释：
+//   lib/migrate.php 建表 / 加列 / 演示数据播种
+//   lib/captcha.php 登录图形验证码（生成 / 校验 / 绘图）
+//   lib/layout.php  页面头尾、主题切换、品牌区渲染
+// 它们内部都 require_once 了本文件。由本文件加载时，PHP 会把本文件视为「已包含」而跳过，
+// 不会造成循环执行；单独引入它们（如测试脚本）时也能自动拉起本文件。
+require_once __DIR__ . '/lib/migrate.php';
+require_once __DIR__ . '/lib/captcha.php';
+require_once __DIR__ . '/lib/layout.php';
+require_once __DIR__ . '/lib/backup.php';
 
 // 站点基本配置（亦是站点设置默认文案；前台实际展示文案可在后台「站点设置」中覆盖）
 $config = [
@@ -26,14 +52,41 @@ $config = [
     'search_placeholder' => '在 {engine} 中搜索…',
     // 页脚版权 / 公司信息
     'site_footer'        => '小组项目导航 © 2026 · 一起协作，高效完成',
-    // 首页每类链接点击多少次后进入“热门”推荐区排序展示
-    'hot_threshold'      => 0,
+
+    // ---- 点击统计防护 ----
+    // 同一客户端对同一链接的计数最小间隔（秒）。窗口内重复上报只计一次。
+    // 设为 0 表示关闭去重（回到「每次请求 +1」的行为）。
+    'click_dedup_window'    => 86400,
+    // 单个客户端每小时最多可计数的「不同链接」数量，用于阻止全表遍历刷数。
+    // 设为 0 表示不限制。
+    'click_max_links_per_hour' => 200,
+
+    // ---- 内容安全策略（CSP）----
+    // 取值三选一：
+    //   'off'     —— 完全不发送 CSP
+    //   'report'  —— 只发 Content-Security-Policy-Report-Only，违规仅上报不拦截
+    //   'enforce' —— 正式生效，违规脚本会被浏览器直接拦下（当前值）
+    //
+    // 已于 2026-10-25 从 'report' 切到 'enforce'。切换前的前置条件由
+    // tests/structure.php 第 8 节钉死（内联脚本必须带 nonce、禁止内联事件属性、
+    // 禁止 eval / new Function），改动代码后请先跑 ./tests/run.sh。
+    //
+    // 若打开页面后发现主题切换 / 语言切换 / 二次确认弹窗 / 验证码换图异常，
+    // 把这里改回 'report' 即可立刻恢复，然后再排查具体是哪条指令被拦。
+    'csp_mode' => 'enforce',
 ];
 
 // 管理后台登录配置
+//
+// 这里没有 password 一项，是故意的。此前密码以明文写在这里，会在建库时被自动播种成
+// 首位管理员，而 README 里印着同一串字符 —— 等于把后台钥匙公开，且因为「改密码要先清空
+// 站点数据」，实际几乎没人会去改它。
+//
+// 现在的流程：全新库不播种任何账号，首次访问后台会被引导到 admin/install.php
+// 自行设置站长账号与密码。老库升级不受影响，认证一律以库内 admin_users 为准。
 $admin_config = [
+    // 仅用作安装向导里用户名输入框的预填值，不再参与任何认证
     'username' => 'admin',
-    'password' => 'demo12345',   // Coursework demo account; change before public deployment
     'session_name' => 'company_nav_admin_session',
 ];
 
@@ -41,6 +94,33 @@ $admin_config = [
 $db_config = [
     'file' => __DIR__ . '/data/company_nav.sqlite',
 ];
+
+/* ---- 管理员角色 ----
+ * owner  ：全部权限（站点设置、重置演示、密码保险箱、链接与分类）
+ * editor ：仅维护链接与分类
+ * 注册新账号一律为 editor；首位 owner 由 admin/install.php 安装向导创建。 */
+define('ROLE_OWNER', 'owner');
+define('ROLE_EDITOR', 'editor');
+
+// 管理员密码最小长度。安装向导 / 独立改密页 / 重置演示页三处统一取这个值，
+// 避免出现「A 页面要求 8 位、B 页面 6 位就放行」的口径不一。
+define('ADMIN_PASSWORD_MIN_LENGTH', 8);
+
+// ---- 登录防护阈值（见 lib 内 throttle_* 系列函数）----
+// 账号或密码连续错误的次数上限，达到即锁定
+define('LOGIN_FAIL_LIMIT', 3);
+// 单次锁定的基准时长（秒）；反复触发按 2 的倍数递增
+define('LOGIN_LOCK_BASE_SECONDS', 30);
+// 验证码连续错误的次数上限（单独计数，不与密码错误混用）
+define('LOGIN_CAPTCHA_FAIL_LIMIT', 10);
+// 验证码触发锁定的基准时长（秒）
+define('LOGIN_CAPTCHA_LOCK_SECONDS', 300);
+
+// 注册限流：同一 IP 在锁定窗口内最多创建的账号数。
+// 注意这里对「注册成功」也计数 —— 只统计失败的话，脚本每次都能成功，照样能批量开号。
+define('REGISTER_MAX_PER_WINDOW', 5);
+// 达到上限后的锁定时长（秒）
+define('REGISTER_LOCK_SECONDS', 600);
 
 // 链接图标（favicon）抓取与本地缓存模块：三级优先级 + SSRF 防护 + 落盘本地
 require_once __DIR__ . '/lib/favicon.php';
@@ -91,174 +171,6 @@ function db(): PDO
 }
 
 /**
- * 建表
- */
-function init_database(PDO $pdo): void
-{
-    $pdo->exec('
-        CREATE TABLE IF NOT EXISTS categories (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            name       TEXT    NOT NULL,
-            icon       TEXT    DEFAULT \'\',
-            sort_order INTEGER NOT NULL DEFAULT 0,
-            is_active  INTEGER NOT NULL DEFAULT 1,
-            created_at TEXT    NOT NULL DEFAULT (datetime(\'now\'))
-        );
-    ');
-
-    $pdo->exec('
-        CREATE TABLE IF NOT EXISTS links (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            category_id INTEGER NOT NULL,
-            title       TEXT    NOT NULL,
-            url         TEXT    NOT NULL,
-            description TEXT    DEFAULT \'\',
-            icon        TEXT    DEFAULT \'\',
-            sort_order  INTEGER NOT NULL DEFAULT 0,
-            is_active   INTEGER NOT NULL DEFAULT 1,
-            click_count INTEGER NOT NULL DEFAULT 0,
-            created_at  TEXT    NOT NULL DEFAULT (datetime(\'now\')),
-            FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-        );
-    ');
-
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_links_category ON links(category_id);');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_links_active   ON links(is_active);');
-
-    // Additive bilingual fields; keep original content and encrypted data untouched.
-    foreach (['categories' => ['name_en'], 'links' => ['title_en', 'description_en']] as $table => $columns) {
-        $existing = array_column($pdo->query('PRAGMA table_info(' . $table . ')')->fetchAll(), 'name');
-        foreach ($columns as $column) {
-            if (!in_array($column, $existing, true)) {
-                $pdo->exec('ALTER TABLE ' . $table . ' ADD COLUMN ' . $column . " TEXT NOT NULL DEFAULT ''");
-            }
-        }
-    }
-
-    // 链接图标本地缓存字段：幂等 ALTER，兼容已有旧库（老库缺列时自动补齐，已有数据不受影响）
-    //  icon_file       本地缓存文件名（assets/icons/ 下，URL 哈希命名，避免撞名）
-    //  icon_source     图标来源：site / google / duckduckgo / favicon.im
-    //  icon_status     缓存状态：ok=有可用本地图标，fail=抓取失败（前台回退首字母徽章）
-    //  icon_note       最近一次抓取的结果说明（便于后台排查）
-    //  icon_fetched_at 最近一次抓取时间（判断是否需要重抓）
-    $existingCols = [];
-    foreach ($pdo->query('PRAGMA table_info(links)') as $col) {
-        $existingCols[(string)$col['name']] = true;
-    }
-    $iconCols = [
-        'icon_file'       => "TEXT NOT NULL DEFAULT ''",
-        'icon_source'     => "TEXT NOT NULL DEFAULT ''",
-        'icon_status'     => "TEXT NOT NULL DEFAULT ''",
-        'icon_note'       => "TEXT NOT NULL DEFAULT ''",
-        'icon_fetched_at' => "TEXT NOT NULL DEFAULT ''",
-    ];
-    foreach ($iconCols as $colName => $colDdl) {
-        if (!isset($existingCols[$colName])) {
-            $pdo->exec('ALTER TABLE links ADD COLUMN ' . $colName . ' ' . $colDdl . ';');
-        }
-    }
-
-    // 站点设置表（key/value，供后台「站点设置」读写前台展示文案）
-    $pdo->exec('
-        CREATE TABLE IF NOT EXISTS settings (
-            key        TEXT PRIMARY KEY,
-            value      TEXT NOT NULL DEFAULT \'\',
-            updated_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
-        );
-    ');
-
-    // 幂等写入默认站点设置（仅当 key 不存在时插入，不覆盖后台已保存的值）
-    $seedSettings = $pdo->prepare(
-        'INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES (?, ?, datetime(\'now\'))'
-    );
-    foreach (site_settings_defaults() as $key => $value) {
-        $seedSettings->execute([$key, $value]);
-    }
-
-    // 管理员账号表：后台账号入库，密码以 password_hash 存储，支持后台自助改密
-    $pdo->exec('
-        CREATE TABLE IF NOT EXISTS admin_users (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            username      TEXT    NOT NULL UNIQUE,
-            password_hash TEXT    NOT NULL,
-            created_at    TEXT    NOT NULL DEFAULT (datetime(\'now\')),
-            updated_at    TEXT    NOT NULL DEFAULT (datetime(\'now\'))
-        );
-    ');
-
-    // 首次初始化（表内无任何账号）时，把 config.php 中的默认账号写入库内，保证开箱即可登录；
-    // 之后一律以库内账号为准（可在后台弹窗中自助改密），$admin_config 仅作旧库兼容兜底。
-    if ((int)$pdo->query('SELECT COUNT(*) FROM admin_users')->fetchColumn() === 0) {
-        global $admin_config;
-        $seedAdmin = $pdo->prepare(
-            'INSERT INTO admin_users (username, password_hash, created_at, updated_at)
-             VALUES (?, ?, datetime(\'now\'), datetime(\'now\'))'
-        );
-        $seedAdmin->execute([
-            $admin_config['username'],
-            password_hash((string)$admin_config['password'], PASSWORD_DEFAULT),
-        ]);
-    }
-
-    // 密码保险箱：条目表（password_enc 存 AES-256-GCM 密文 base64，绝不留明文）+ 元数据表（主密码校验哈希 / 密钥派生盐）
-    // 说明：新增表为「只增不改」的幂等迁移，老库升级后 links / categories / settings / admin_users 数据不受影响。
-    $pdo->exec('
-        CREATE TABLE IF NOT EXISTS vault_items (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            title        TEXT    NOT NULL,
-            url          TEXT    NOT NULL DEFAULT \'\',
-            username     TEXT    NOT NULL DEFAULT \'\',
-            password_enc TEXT    NOT NULL DEFAULT \'\',
-            notes        TEXT    NOT NULL DEFAULT \'\',
-            category     TEXT    NOT NULL DEFAULT \'\',
-            created_at   TEXT    NOT NULL DEFAULT (datetime(\'now\')),
-            updated_at   TEXT    NOT NULL DEFAULT (datetime(\'now\'))
-        );
-    ');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_vault_items_category ON vault_items(category);');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_vault_items_updated  ON vault_items(updated_at);');
-
-    $pdo->exec('
-        CREATE TABLE IF NOT EXISTS vault_meta (
-            key        TEXT PRIMARY KEY,
-            value      TEXT NOT NULL DEFAULT \'\',
-            updated_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
-        );
-    ');
-
-    // 后台登录失败限流表（按客户端 IP 哈希记录；登录成功即清零）
-    $pdo->exec('
-        CREATE TABLE IF NOT EXISTS login_attempts (
-            ip_hash      TEXT PRIMARY KEY,
-            fail_count   INTEGER NOT NULL DEFAULT 0,
-            locked_until INTEGER NOT NULL DEFAULT 0,
-            updated_at   TEXT    NOT NULL DEFAULT (datetime(\'now\'))
-        );
-    ');
-}
-
-/**
- * 写入演示数据
- */
-function seed_demo_data(PDO $pdo): void
-{
-    $groups = json_decode(file_get_contents(__DIR__ . '/data/demo.json'), true, 512, JSON_THROW_ON_ERROR);
-    $insertCat = $pdo->prepare('INSERT INTO categories (name, name_en, icon, sort_order) VALUES (?, ?, ?, ?)');
-    $insertLink = $pdo->prepare(
-        'INSERT INTO links (category_id, title, title_en, url, description, description_en, icon, sort_order, is_active, click_count)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0)'
-    );
-    foreach ($groups as $position => $group) {
-        $insertCat->execute([$group['name'], $group['name_en'], $group['icon'], $position + 1]);
-        $categoryId = (int)$pdo->lastInsertId();
-        foreach ($group['links'] as $rank => $link) {
-            $insertLink->execute([$categoryId, $link['title'], $link['title_en'], $link['url'],
-                $link['description'], $link['description_en'], $link['icon'], $rank + 1]);
-        }
-    }
-}
-
-/**
  * 站点设置默认值（key => value）
  *
  * 与顶部 $config 保持一致，同时作为「站点设置」的默认兜底文案；
@@ -283,9 +195,15 @@ function site_settings_defaults(): array
 }
 
 /**
- * 读取站点设置（优先 settings 表；空值/缺省回退默认文案）
+ * 站点设置缓存（按引用共享）
+ *
+ * 之所以不用「函数内 static」而要走引用：那样 save_setting() 写完库后，
+ * 同一个请求里后续的 raw_setting() 仍会读到旧值（缓存无失效途径）。
+ * 现在 save_setting() 会同步更新这份缓存，读写始终一致。
+ *
+ * @return array<string,string>
  */
-function raw_setting(string $key, bool $useDefault = true): string
+function &raw_setting_cache(): array
 {
     static $cache = null;
     if ($cache === null) {
@@ -299,6 +217,15 @@ function raw_setting(string $key, bool $useDefault = true): string
             // DB 不可用时静默降级，由默认值兜底
         }
     }
+    return $cache;
+}
+
+/**
+ * 读取站点设置（优先 settings 表；空值/缺省回退默认文案）
+ */
+function raw_setting(string $key, bool $useDefault = true): string
+{
+    $cache = &raw_setting_cache();
     if (isset($cache[$key]) && $cache[$key] !== '') {
         return $cache[$key];
     }
@@ -329,6 +256,11 @@ function save_setting(string $key, string $value): void
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at"
     );
     $stmt->execute([$key, $value]);
+
+    // 同步刷新读取缓存与引擎清单缓存，保证同一请求内读到的一定是刚写入的值
+    $cache = &raw_setting_cache();
+    $cache[$key] = $value;
+    search_engines_reset();
 }
 
 /**
@@ -419,14 +351,27 @@ function parse_search_engines(string $raw): array
 /**
  * 当前生效的引擎清单（settings 表 search_engines 优先；无有效配置回退内置默认）
  */
-function search_engines(): array
+function &search_engines_cache(): ?array
 {
     static $cache = null;
+    return $cache;
+}
+
+function search_engines(): array
+{
+    $cache = &search_engines_cache();
     if ($cache === null) {
         $parsed = parse_search_engines(setting('search_engines'));
         $cache  = $parsed ?: default_search_engines();
     }
     return $cache;
+}
+
+/** 配置变更后丢弃引擎清单缓存，下一次读取时重新解析 */
+function search_engines_reset(): void
+{
+    $cache = &search_engines_cache();
+    $cache = null;
 }
 
 /**
@@ -457,16 +402,6 @@ function search_input_placeholder(string $engineName): string
     }
     return str_replace('{engine}', t($engineName), $tpl);
 }
-
-/**
- * 读取配置项（顶部使用 $config / $admin_config / $db_config 全局数组）
- */
-function cfg(string $key, $default = '')
-{
-    global $config;
-    return $config[$key] ?? $default;
-}
-
 
 /* =====================================================================
  * 管理员账号（admin_users 表）
@@ -522,16 +457,68 @@ function admin_current_username(): string
 }
 
 /* =====================================================================
- * 基础设施函数：后台登录失败限流
+ * 管理员角色分级
  * ---------------------------------------------------------------------
- * 以客户端 IP 为维度统计连续失败次数，达到上限后锁定一段时间；
- * 登录成功立即清零。IP 不落明文，仅存 sha1 摘要。
+ * owner  ：全部权限（站点设置 / 重置演示 / 密码保险箱 / 链接与分类）
+ * editor ：只能维护链接与分类
+ *
+ * 「开放注册」一旦开启，任何人都能自助建号。若注册出来的账号也是 owner，
+ * 就等于把整个后台连同保险箱一起对外开放 —— 因此注册一律产出 editor，
+ * 只有首次安装由 config.php 播种的那个账号是 owner。
  * ===================================================================== */
 
-// 连续失败达到该次数即触发锁定
-define('LOGIN_FAIL_LIMIT', 3);
-// 单次锁定时长（秒）
-define('LOGIN_LOCK_SECONDS', 30);
+/** 合法角色清单 */
+function admin_role_list(): array
+{
+    return [ROLE_OWNER, ROLE_EDITOR];
+}
+
+/** 清洗并校验角色值，非法值一律按 owner 处理（不因脏数据把账号降级到 editor 之外） */
+function admin_role_normalize(?string $role): string
+{
+    $role = strtolower(trim((string)$role));
+    return in_array($role, admin_role_list(), true) ? $role : ROLE_OWNER;
+}
+
+/** 读取指定用户名在库内的角色；库内无该账号时按 owner 兜底（兼容 config.php 明文账号的旧库） */
+function admin_role_for(string $username): string
+{
+    if ($username === '') {
+        return ROLE_OWNER;
+    }
+    try {
+        $user = admin_find_user($username);
+    } catch (Throwable $e) {
+        return ROLE_OWNER;
+    }
+    if ($user === null) {
+        return ROLE_OWNER;
+    }
+    return admin_role_normalize((string)($user['role'] ?? ROLE_OWNER));
+}
+
+/** 当前登录会话的角色；会话里没有记录时按 owner 兜底，保证升级前已登录的会话不受影响 */
+function admin_current_role(): string
+{
+    return admin_role_normalize((string)($_SESSION['admin_role'] ?? ROLE_OWNER));
+}
+
+/** 当前会话是否为站长（owner） */
+function admin_is_owner(): bool
+{
+    return admin_current_role() === ROLE_OWNER;
+}
+
+/* =====================================================================
+ * 基础设施函数：后台登录失败限流（双维度 + 指数退避）
+ * ---------------------------------------------------------------------
+ * 以「维度 + 主体摘要」为键统计连续失败次数，达到上限后锁定；登录成功即清零。
+ * 三个维度各自独立计数：
+ *   ip      —— 挡住来自同一来源的批量尝试
+ *   user    —— 挡住分布在不同 IP、针对同一个账号的撞库
+ *   captcha —— 验证码自身的错误，单独计数，不与密码错误混在同一个桶里
+ * IP 与用户名都不落明文，只存 sha256 摘要。
+ * ===================================================================== */
 
 /**
  * 获取客户端 IP
@@ -545,21 +532,19 @@ function login_client_ip(): string
     return $ip !== '' ? $ip : 'unknown';
 }
 
-/**
- * 当前客户端 IP 的存储摘要（避免库内存明文 IP）
- */
-function login_ip_hash(): string
+/** 某个限流维度下主体值的摘要 */
+function throttle_hash(string $scope, string $subject): string
 {
-    return sha1('company-nav|' . login_client_ip());
+    return hash('sha256', 'company-nav|throttle|' . $scope . '|' . $subject);
 }
 
-/**
- * 读取当前 IP 的限流记录
- */
-function login_attempt_row(): ?array
+/** 读取限流记录 */
+function throttle_row(string $scope, string $subject): ?array
 {
-    $stmt = db()->prepare('SELECT fail_count, locked_until FROM login_attempts WHERE ip_hash = ?');
-    $stmt->execute([login_ip_hash()]);
+    $stmt = db()->prepare(
+        'SELECT fail_count, strikes, locked_until FROM login_throttle WHERE scope = ? AND subject_hash = ?'
+    );
+    $stmt->execute([$scope, throttle_hash($scope, $subject)]);
     $row = $stmt->fetch();
     return $row === false ? null : $row;
 }
@@ -567,220 +552,164 @@ function login_attempt_row(): ?array
 /**
  * 剩余锁定秒数；0 表示当前未被锁定
  */
-function login_lock_remaining(): int
+function throttle_remaining(string $scope, string $subject): int
 {
-    $row   = login_attempt_row();
+    $row   = throttle_row($scope, $subject);
     $until = $row ? (int)$row['locked_until'] : 0;
     $left  = $until - time();
     return $left > 0 ? $left : 0;
 }
 
 /**
- * 记录一次登录失败
+ * 记录一次失败
  *
  * @return int 剩余可尝试次数；返回 0 表示本次已触发锁定
  */
-function login_attempt_fail(): int
+function throttle_fail(string $scope, string $subject, int $limit, int $baseSeconds): int
 {
-    $pdo  = db();
-    $hash = login_ip_hash();
+    $pdo   = db();
+    $key   = throttle_hash($scope, $subject);
+    $limit = max(1, $limit);
 
     // 顺带清理一天前的陈旧记录，避免表无限增长
-    $pdo->exec("DELETE FROM login_attempts WHERE updated_at < datetime('now', '-1 day')");
+    $pdo->exec("DELETE FROM login_throttle WHERE updated_at < datetime('now', '-1 day')");
 
-    $row   = login_attempt_row();
-    $count = $row ? (int)$row['fail_count'] + 1 : 1;
-    $until = 0;
+    $row     = throttle_row($scope, $subject);
+    $count   = $row ? (int)$row['fail_count'] + 1 : 1;
+    $strikes = $row ? (int)$row['strikes'] : 0;
+    $until   = 0;
 
-    if ($count >= LOGIN_FAIL_LIMIT) {
-        $until = time() + LOGIN_LOCK_SECONDS;
+    if ($count >= $limit) {
+        // 指数退避：第 n 次触发锁定时长 = base * 2^(n-1)，封顶 32 倍，避免被无限放大
+        $strikes++;
+        $until = time() + ($baseSeconds * (1 << min($strikes - 1, 5)));
         $count = 0;                 // 触发锁定后计数归零，锁定期满重新累计
     }
 
-    if ($row) {
-        $stmt = $pdo->prepare(
-            'UPDATE login_attempts SET fail_count = ?, locked_until = ?, updated_at = datetime(\'now\')
-             WHERE ip_hash = ?'
-        );
-        $stmt->execute([$count, $until, $hash]);
-    } else {
-        $stmt = $pdo->prepare(
-            'INSERT INTO login_attempts (ip_hash, fail_count, locked_until, updated_at)
-             VALUES (?, ?, ?, datetime(\'now\'))'
-        );
-        $stmt->execute([$hash, $count, $until]);
-    }
+    $stmt = $pdo->prepare(
+        'INSERT INTO login_throttle (scope, subject_hash, fail_count, strikes, locked_until, updated_at)
+         VALUES (?, ?, ?, ?, ?, datetime(\'now\'))
+         ON CONFLICT(scope, subject_hash) DO UPDATE SET
+           fail_count = excluded.fail_count, strikes = excluded.strikes,
+           locked_until = excluded.locked_until, updated_at = excluded.updated_at'
+    );
+    $stmt->execute([$scope, $key, $count, $strikes, $until]);
 
-    return $until > 0 ? 0 : (LOGIN_FAIL_LIMIT - $count);
+    return $until > 0 ? 0 : ($limit - $count);
 }
 
 /**
- * 登录成功：清空当前 IP 的失败记录
+ * 清空某个维度的失败记录（登录成功、或验证码答对时调用）
  */
-function login_attempt_clear(): void
+function throttle_clear(string $scope, string $subject): void
 {
-    $stmt = db()->prepare('DELETE FROM login_attempts WHERE ip_hash = ?');
-    $stmt->execute([login_ip_hash()]);
-}
-
-/* =====================================================================
- * 基础设施函数：后台登录图形验证码
- * ===================================================================== */
-
-// 验证码有效期（秒）
-define('CAPTCHA_TTL', 300);
-// 验证码字符集（剔除 0/O/1/I/L 等易混字符）
-define('CAPTCHA_CHARSET', '23456789ABCDEFGHJKMNPQRSTUVWXYZ');
-
-/**
- * 生成验证码并写入 Session
- *
- * @return string 明文验证码（仅用于绘图，不会回传给前端文本）
- */
-function captcha_generate(int $length = 4): string
-{
-    $chars = CAPTCHA_CHARSET;
-    $max   = strlen($chars) - 1;
-    $code  = '';
-    for ($i = 0; $i < $length; $i++) {
-        $code .= $chars[random_int(0, $max)];
-    }
-    $_SESSION['login_captcha']     = $code;
-    $_SESSION['login_captcha_exp'] = time() + CAPTCHA_TTL;
-    return $code;
+    $stmt = db()->prepare('DELETE FROM login_throttle WHERE scope = ? AND subject_hash = ?');
+    $stmt->execute([$scope, throttle_hash($scope, $subject)]);
 }
 
 /**
- * 校验验证码（一次性：无论成败都会销毁当前答案）
+ * 某个用户名当前的锁定剩余秒数（0 表示未被锁定）
  */
-function captcha_verify(?string $input): bool
+function throttle_user_remaining(string $username): int
 {
-    $answer = (string)($_SESSION['login_captcha'] ?? '');
-    $exp    = (int)($_SESSION['login_captcha_exp'] ?? 0);
-    unset($_SESSION['login_captcha'], $_SESSION['login_captcha_exp']);
-
-    if ($answer === '' || $exp < time()) {
-        return false;
+    if ($username === '') {
+        return 0;
     }
-    $input = strtoupper(trim((string)$input));
-    return $input !== '' && strlen($input) === strlen($answer) && hash_equals($answer, $input);
+    return throttle_remaining('user', strtolower($username));
 }
 
 /**
- * 查找可用字体；找不到返回 null（回退 GD 内置字体）
+ * 当前 IP 的锁定剩余秒数（0 表示未被锁定）
  */
-function captcha_font_path(): ?string
+function throttle_ip_remaining(): int
 {
-    static $done = false;
-    static $path = null;
-    if ($done) {
-        return $path;
-    }
-    $done = true;
-
-    $candidates = [
-        __DIR__ . '/assets/fonts/captcha.ttf',
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-        '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
-        '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
-        '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
-        '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
-    ];
-    foreach ($candidates as $file) {
-        if (is_file($file)) {
-            $path = $file;
-            return $path;
-        }
-    }
-    return null;
-}
-
-/**
- * 直接输出验证码 PNG（生成与绘制一体，调用方无需再处理）
- */
-function captcha_png(): void
-{
-    // 丢弃此前任何杂散输出（warning / notice），确保 PNG 数据流纯净
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
-    @ini_set('display_errors', '0');
-
-    if (!headers_sent()) {
-        header('Content-Type: image/png');
-        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-    }
-
-    if (!function_exists('imagecreatetruecolor')) {
-        header('Content-Type: text/plain; charset=utf-8');
-        echo ('GD ' . t('扩展未启用，无法生成验证码。'));
-        return;
-    }
-
-    $code = captcha_generate(4);
-    $w    = 132;
-    $h    = 44;
-
-    $im = imagecreatetruecolor($w, $h);
-    imagefilledrectangle($im, 0, 0, $w, $h, imagecolorallocate($im, 245, 247, 250));
-
-    // 干扰点
-    for ($i = 0; $i < 90; $i++) {
-        $c = imagecolorallocate($im, random_int(180, 226), random_int(180, 226), random_int(180, 226));
-        imagesetpixel($im, random_int(0, $w - 1), random_int(0, $h - 1), $c);
-    }
-    // 干扰线
-    for ($i = 0; $i < 4; $i++) {
-        $c = imagecolorallocate($im, random_int(150, 210), random_int(150, 210), random_int(150, 210));
-        imageline($im, random_int(0, $w), random_int(0, $h), random_int(0, $w), random_int(0, $h), $c);
-    }
-
-    $font  = captcha_font_path();
-    $len   = strlen($code);
-    $step  = (int)(($w - 24) / $len);
-    for ($i = 0; $i < $len; $i++) {
-        $ch    = $code[$i];
-        $x     = 14 + $i * $step + random_int(-2, 2);
-        $y     = random_int(26, 34);
-        $color = imagecolorallocate($im, random_int(30, 90), random_int(60, 120), random_int(120, 190));
-
-        if ($font !== null) {
-            imagettftext($im, 20, random_int(-14, 14), $x, $y, $color, $font, $ch);
-        } else {
-            imagestring($im, 5, $x, (int)(($h - 15) / 2), $ch, $color);
-        }
-    }
-
-    imagerectangle($im, 0, 0, $w - 1, $h - 1, imagecolorallocate($im, 224, 228, 235));
-    imagepng($im);
-    imagedestroy($im);
+    return throttle_remaining('ip', login_client_ip());
 }
 
 /**
  * 校验管理员账号密码
  *
- * 优先校验 admin_users 表（password_verify）；仅当库内没有任何账号记录时，
- * 回退 config.php 的 $admin_config 明文配置（兼容首次安装的 admin / admin123）。
+ * 一律以 admin_users 表为准（password_verify）。库内还没有账号（即尚未完成安装）时
+ * 直接返回 false —— 此前这里会回退 $admin_config 里的明文密码，而 README 又印着同一串
+ * 字符，等于把后台钥匙公开。现在首位管理员必须由 admin/install.php 自行设置。
  */
 function admin_authenticate(string $username, string $password): bool
 {
-    global $admin_config;
-
     if ($username === '' || $password === '') {
         return false;
     }
 
-    if (admin_user_count() > 0) {
-        $user = admin_find_user($username);
-        return $user !== null && password_verify($password, (string)$user['password_hash']);
+    $user = admin_find_user($username);
+
+    return $user !== null && password_verify($password, (string)$user['password_hash']);
+}
+
+/**
+ * 站点是否尚未完成安装（admin_users 表内一个账号都没有）
+ *
+ * 为真时后台所有页面都应跳到 admin/install.php，由访问者设置首位管理员。
+ */
+function admin_needs_install(): bool
+{
+    return admin_user_count() === 0;
+}
+
+/**
+ * 当前登录账号是否仍在使用初始密码、应当尽快改掉
+ *
+ * 只有老库升级的存量账号会被置上这个标记（见 lib/migrate.php 的加列逻辑）——
+ * 我们无法从哈希反推它是不是当年那个明文默认密码，所以一律提醒一次，改完即消除。
+ */
+function admin_must_change_password(): bool
+{
+    $username = (string)($_SESSION['admin_username'] ?? '');
+    if ($username === '') {
+        return false;
+    }
+    $user = admin_find_user($username);
+
+    return $user !== null && (int)($user['must_change_password'] ?? 0) === 1;
+}
+
+/**
+ * 清除「需要改密」标记：改密成功或安装向导建号成功后调用
+ */
+function admin_mark_password_changed(string $username): void
+{
+    db()->prepare(
+        "UPDATE admin_users SET must_change_password = 0, updated_at = datetime('now') WHERE username = ?"
+    )->execute([$username]);
+}
+
+/**
+ * 安装向导专用：创建首位管理员
+ *
+ * 与 admin_create_user()（注册流程，恒为 editor）不同，这里建的是 owner，
+ * 且必须显式给出密码 —— 不允许空密码建号。
+ *
+ * @throws RuntimeException 用户名非法 / 密码过短 / 站点已完成安装
+ */
+function admin_install_owner(string $username, string $password): void
+{
+    $username = trim($username);
+    if ($username === '') {
+        throw new RuntimeException(t('管理员用户名不能为空。'));
+    }
+    if (strlen($username) > 32) {
+        throw new RuntimeException(t('管理员用户名最长 32 个字符。'));
+    }
+    if (strlen($password) < ADMIN_PASSWORD_MIN_LENGTH) {
+        throw new RuntimeException(t('新密码长度至少 8 位。'));
+    }
+    if (!admin_needs_install()) {
+        // 站点已装好：绝不允许再建第二个 owner，否则任何人都能把自己提权成站长。
+        throw new RuntimeException(t('站点已完成安装，请直接登录。'));
     }
 
-    // 库内无账号记录：回退 config.php
-    return hash_equals((string)$admin_config['username'], $username)
-        && hash_equals((string)$admin_config['password'], $password);
+    db()->prepare(
+        'INSERT INTO admin_users (username, password_hash, role, must_change_password, created_at, updated_at)
+         VALUES (?, ?, ?, 0, datetime(\'now\'), datetime(\'now\'))'
+    )->execute([$username, password_hash($password, PASSWORD_DEFAULT), ROLE_OWNER]);
 }
 
 /**
@@ -791,8 +720,6 @@ function admin_authenticate(string $username, string $password): bool
  */
 function admin_save_account(string $username, string $password): void
 {
-    global $admin_config;
-
     $username = trim($username);
     if ($username === '') {
         throw new RuntimeException(t('管理员用户名不能为空'));
@@ -813,17 +740,25 @@ function admin_save_account(string $username, string $password): void
     }
 
     if ($password === '') {
-        $hash = $existing
-            ? (string)$existing['password_hash']
-            : password_hash((string)$admin_config['password'], PASSWORD_DEFAULT);
+        if ($existing === null) {
+            // 库内还没有账号：不允许用空密码建号，必须显式给一个密码
+            throw new RuntimeException(t('尚未创建管理员账号，请先完成安装向导。'));
+        }
+        $hash         = (string)$existing['password_hash'];
+        $passwordGone = false;
     } else {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $hash         = password_hash($password, PASSWORD_DEFAULT);
+        $passwordGone = true;
     }
 
     if ($existing) {
-        $stmt = $pdo->prepare(
-            'UPDATE admin_users SET username = ?, password_hash = ?, updated_at = datetime(\'now\') WHERE id = ?'
-        );
+        // 只有密码真的换了才清「需要改密」标记 —— 仅改用户名不算数，
+        // 否则老库用户在重置演示弹窗里改个用户名就把安全提醒糊弄过去了。
+        $sql = $passwordGone
+            ? 'UPDATE admin_users SET username = ?, password_hash = ?, must_change_password = 0,
+                updated_at = datetime(\'now\') WHERE id = ?'
+            : 'UPDATE admin_users SET username = ?, password_hash = ?, updated_at = datetime(\'now\') WHERE id = ?';
+        $stmt = $pdo->prepare($sql);
         $stmt->execute([$username, $hash, (int)$existing['id']]);
         return;
     }
@@ -840,8 +775,12 @@ function admin_save_account(string $username, string $password): void
  *
  * 与 admin_save_account() 的「单账号改名 / 改密」语义不同：此处始终新增一条记录，
  * 用户名重复时抛错，由调用方转成表单提示。
+ * 角色恒为 editor —— 见「管理员角色分级」的取舍说明。
  *
- * @throws RuntimeException 用户名为空 / 用户名已存在 / 数据库约束失败
+ * 密码长度在这里也校验一遍：注册页的校验属于页面层，换一个调用点就能绕开，
+ * 数据层再兜一次才挡得住。
+ *
+ * @throws RuntimeException 用户名为空 / 用户名已存在 / 密码过短 / 数据库约束失败
  */
 function admin_create_user(string $username, string $password): void
 {
@@ -849,16 +788,20 @@ function admin_create_user(string $username, string $password): void
     if ($username === '') {
         throw new RuntimeException(t('用户名不能为空。'));
     }
+    $pwdLen = function_exists('mb_strlen') ? mb_strlen($password) : strlen($password);
+    if ($pwdLen < ADMIN_PASSWORD_MIN_LENGTH) {
+        throw new RuntimeException(t('新密码长度至少 8 位。'));
+    }
     if (admin_find_user($username) !== null) {
         throw new RuntimeException(t('该用户名已被注册，请换一个试试。'));
     }
 
     try {
         $stmt = db()->prepare(
-            'INSERT INTO admin_users (username, password_hash, created_at, updated_at)
-             VALUES (?, ?, datetime(\'now\'), datetime(\'now\'))'
+            'INSERT INTO admin_users (username, password_hash, role, created_at, updated_at)
+             VALUES (?, ?, ?, datetime(\'now\'), datetime(\'now\'))'
         );
-        $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT)]);
+        $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT), ROLE_EDITOR]);
     } catch (PDOException $e) {
         // UNIQUE 约束兜底（并发注册同一用户名）
         throw new RuntimeException(t('该用户名已被注册，请换一个试试。'));
@@ -878,6 +821,10 @@ function secure_session_start(): void
     session_set_cookie_params([
         'httponly' => true,
         'samesite' => 'Lax',
+        // HTTPS 站点必须带 Secure，否则会话 Cookie 会被浏览器经明文 HTTP 请求携带
+        'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        // 后台位于 /admin/ 子目录，显式声明根路径避免会话被限定在子目录内
+        'path'     => '/',
     ]);
     session_start();
 }
@@ -927,128 +874,6 @@ function e(?string $value): string
 }
 
 /**
- * 获取当前主题偏好（cookie）
- */
-function theme_preference(): string
-{
-    // 默认固定浅色（不跟随系统深色）；仅当 Cookie 明确为 dark / light 时跟随用户手动选择
-    return ($_COOKIE['theme'] ?? '') === 'dark' ? 'dark' : 'light';
-}
-
-/**
- * 统一页面头部（含主题初始化脚本与 favicon）
- *
- * FOUC 防护：无 data-loaded 时，light 默认 #f8fafc（淡奶酪黄暖调）、dark 用户（服务端已按 cookie 输出
- * data-theme="dark"）#111827，避免 CSS 加载前的白闪/暗闪。
- */
-function page_header(string $title): void
-{
-    $siteName = e(setting('site_name'));
-    $theme    = theme_preference();
-    echo '<!DOCTYPE html>
-<html lang="' . e(locale()) . '" data-theme="' . $theme . '">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>' . e(t($title)) . ' · ' . $siteName . '</title>
-' . favicon_html('assets/') . '
-<style>
-html:not([data-loaded]) { background:#f8fafc; }
-html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
-</style>
-<link rel="stylesheet" href="assets/css/style.css">
-<link rel="stylesheet" href="assets/css/workspace.css">
-</head>';
-}
-
-/**
- * 渲染主题切换按钮（配合 theme.js；浅色默认显示月亮、深色显示太阳）
- */
-function theme_toggle_html(string $extraClass = ''): string
-{
-    return language_switch_html() . '<button type="button" class="theme-toggle ' . $extraClass . ('" id="themeToggle" aria-label="' . t('切换深浅色主题') . '">
-<svg class="tt-icon tt-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-<svg class="tt-icon tt-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-</button>');
-}
-
-/**
- * favicon 声明（两个变体：浅色 favicon.svg / 深色 favicon-dark.svg；theme.js 按主题切换 href）
- */
-function favicon_html(string $prefix): string
-{
-    $theme = theme_preference();
-    $file  = $theme === 'dark' ? 'favicon-dark.svg' : 'favicon.svg';
-    return '<link rel="icon" type="image/svg+xml" id="appFavicon" data-fav-base="' . e($prefix) . '" href="' . e($prefix . $file) . '">';
-}
-
-/**
- * 精致 Logo 徽章（青蓝渐变圆角方块 + 白色罗盘指针 SVG）
- */
-function logo_badge_html(): string
-{
-    return '<span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#2563eb"/><rect x="7" y="7" width="7" height="7" rx="1.5" fill="white"/><rect x="18" y="7" width="7" height="7" rx="1.5" fill="white"/><rect x="7" y="18" width="7" height="7" rx="1.5" fill="white"/><path d="M18 21.5h7m-3.5-3.5v7" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></span>';
-}
-
-/**
- * 登录 / 注册页左侧品牌区（品牌分栏布局共用）
- *
- * 结构：Logo 徽标 + 公司名 + 副标题 → 主标题 + 价值主张 → 卖点列表 → 底部注脚；
- * 背景由渐变光晕（.auth-brand-glow）与细网格底纹（.auth-brand-grid）叠加而成。
- *
- * @param string   $title    主标题（如「欢迎回来」）
- * @param string   $subtitle 副标题 / 价值主张
- * @param string[] $points   卖点列表（逐条渲染为带勾选图标的行）
- * @param string   $foot     底部注脚，留空则不渲染
- */
-function auth_brand_html(string $title, string $subtitle, array $points = [], string $foot = ''): string
-{
-    $html = '<aside class="auth-brand">'
-        . '<span class="auth-brand-grid" aria-hidden="true"></span>'
-        . '<span class="auth-brand-glow auth-brand-glow-a" aria-hidden="true"></span>'
-        . '<span class="auth-brand-glow auth-brand-glow-b" aria-hidden="true"></span>'
-        . '<div class="auth-brand-inner">'
-        . '<div class="auth-brand-top">' . logo_badge_html()
-        . '<div class="auth-brand-id">'
-        . '<div class="auth-brand-name">' . e(setting('site_name')) . '</div>'
-        . '<div class="auth-brand-tag">' . e(setting('site_slogan')) . '</div>'
-        . '</div></div>'
-        . '<div class="auth-brand-body">'
-        . '<h1 class="auth-brand-title">' . e($title) . '</h1>'
-        . '<p class="auth-brand-sub">' . e($subtitle) . '</p>'
-        . '</div>';
-
-    if ($points) {
-        $html .= '<ul class="auth-points">';
-        foreach ($points as $point) {
-            $html .= '<li><span class="ap-ico" aria-hidden="true">'
-                . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" '
-                . 'stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
-                . '</span><span>' . e((string)$point) . '</span></li>';
-        }
-        $html .= '</ul>';
-    }
-
-    if ($foot !== '') {
-        $html .= '<div class="auth-brand-foot">' . e($foot) . '</div>';
-    }
-
-    return $html . '</div></aside>';
-}
-
-/**
- * 统一页面尾部（主题切换逻辑）
- *
- * @param string $base 资源相对前缀：根目录页面传 ''，admin/ 子目录页面传 '../'
- */
-function page_footer(string $base = ''): void
-{
-    echo '<script src="' . $base . 'assets/js/i18n.js"></script><script src="' . $base . 'assets/js/theme.js"></script><script src="' . $base . 'assets/js/workspace.js"></script>
-</body>
-</html>';
-}
-
-/**
  * 从表单取值，去除首尾空白；可给默认值
  */
 function post(?string $key, string $default = ''): string
@@ -1068,3 +893,186 @@ function redirect(string $url): void
     header('Location: ' . $url);
     exit;
 }
+
+/* =====================================================================
+ * 基础设施函数：点击统计去重与限流
+ * ---------------------------------------------------------------------
+ * track_click.php 原本对任意 GET 请求无条件 +1，任何人都能把任意链接的点击数
+ * 刷到任意值。此处补上两层约束：
+ *   ① 同客户端 + 同链接，在 click_dedup_window 窗口内只计一次；
+ *   ② 同客户端每小时最多对 click_max_links_per_hour 个不同链接计数，防止遍历 ID 全表刷数。
+ *
+ * 说明：为何不用 Referer 校验？因为 navigator.sendBeacon() 的 Referer 会被部分
+ *       隐私插件与浏览器策略剥离，硬性校验会漏计真实用户的点击，反而让统计更不准。
+ *       IP 去重不依赖客户端配合，对本场景性价比更高。
+ * ===================================================================== */
+
+/**
+ * 当前客户端 IP 的存储摘要（不落明文）
+ */
+function click_ip_hash(): string
+{
+    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+    return hash('sha256', 'company-nav|click|' . $ip);
+}
+
+/**
+ * 读取点击统计防护配置
+ *
+ * @return array{window:int,hourly:int}
+ */
+function click_limits(): array
+{
+    global $config;
+    return [
+        'window' => max(0, (int)($config['click_dedup_window'] ?? 86400)),
+        'hourly' => max(0, (int)($config['click_max_links_per_hour'] ?? 200)),
+    ];
+}
+
+/**
+ * 本次点击是否可以计数
+ */
+function click_is_allowed(int $linkId): bool
+{
+    if ($linkId <= 0) {
+        return false;
+    }
+
+    $limits = click_limits();
+    // 两层约束都显式关闭时，退化为原行为（每次请求都计数）
+    if ($limits['window'] <= 0 && $limits['hourly'] <= 0) {
+        return true;
+    }
+
+    $pdo  = db();
+    $hash = click_ip_hash();
+    $now  = time();
+
+    // 顺带清理陈旧行，避免表无限增长（保留窗口至少要能覆盖「每小时预算」的统计区间，
+    // 因此取 max(3600, window)，否则预算统计会因为过早清理而失真）
+    $pdo->prepare('DELETE FROM click_throttle WHERE clicked_at < ?')
+        ->execute([$now - max(3600, $limits['window'])]);
+
+    // ① 同一客户端对同一链接：窗口内重复上报不再计数
+    if ($limits['window'] > 0) {
+        $stmt = $pdo->prepare('SELECT clicked_at FROM click_throttle WHERE ip_hash = ? AND link_id = ?');
+        $stmt->execute([$hash, $linkId]);
+        $last = $stmt->fetchColumn();
+        if ($last !== false && ($now - (int)$last) < $limits['window']) {
+            return false;
+        }
+    }
+
+    // ② 同一客户端近一小时已计数的不同链接数达上限：拒绝（防 ID 遍历）
+    if ($limits['hourly'] > 0) {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM click_throttle WHERE ip_hash = ? AND clicked_at > ?');
+        $stmt->execute([$hash, $now - 3600]);
+        if ((int)$stmt->fetchColumn() >= $limits['hourly']) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * 记录一次已认可的点击（写入 / 更新去重戳）
+ */
+function click_mark(int $linkId): void
+{
+    if ($linkId <= 0) {
+        return;
+    }
+    $stmt = db()->prepare(
+        'INSERT INTO click_throttle (ip_hash, link_id, clicked_at) VALUES (?, ?, ?)
+         ON CONFLICT(ip_hash, link_id) DO UPDATE SET clicked_at = excluded.clicked_at'
+    );
+    $stmt->execute([click_ip_hash(), $linkId, time()]);
+}
+
+/* =====================================================================
+ * 基础设施函数：安全响应头 + CSP nonce
+ * ---------------------------------------------------------------------
+ * 全站统一输出。默认只放「不需要改造页面就能生效」的头；
+ * CSP 需要内联脚本带 nonce、事件属性改为监听器，见下方 csp_header()。
+ * ===================================================================== */
+
+/**
+ * 本次请求的 CSP 随机串（每次请求不同，杜绝预判注入）
+ */
+function csp_nonce(): string
+{
+    static $nonce = null;
+    if ($nonce === null) {
+        $nonce = base64_encode(random_bytes(24));
+    }
+    return $nonce;
+}
+
+/**
+ * 内联 <script> 标签必须携带的属性
+ *
+ * 用法：<script<?= nonce_attr() ?>> ... </script>
+ */
+function nonce_attr(): string
+{
+    return ' nonce="' . e(csp_nonce()) . '"';
+}
+
+/**
+ * 组装 CSP 策略串
+ */
+function csp_policy(): string
+{
+    $nonce = csp_nonce();
+    return implode('; ', [
+        "default-src 'self'",
+        // 现代浏览器识别 nonce 后会忽略 'unsafe-inline'；保留它只是给不支持 nonce 的老浏览器兜底
+        "script-src 'self' 'nonce-" . $nonce . "' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https:",
+        "font-src 'self'",
+        "connect-src 'self'",
+        "frame-ancestors 'self'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "object-src 'none'",
+    ]);
+}
+
+/**
+ * 发送 CSP 头（模式由 $config['csp_mode'] 决定）
+ */
+function csp_header(): void
+{
+    global $config;
+    $mode = strtolower(trim((string)($config['csp_mode'] ?? 'report')));
+    if ($mode === 'off') {
+        return;
+    }
+    // 非 Known 值一律按 report 处理，避免拼错开关名就误截断页面
+    $enforce = ($mode === 'enforce');
+    $name    = $enforce ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
+    header($name . ': ' . csp_policy());
+}
+
+function security_headers(): void
+{
+    // CLI（如 tests/i18n_smoke.php）没有 HTTP 响应，跳过
+    if (PHP_SAPI === 'cli' || headers_sent()) {
+        return;
+    }
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+    csp_header();
+}
+
+/*
+ * 每个入口的第一行都是 require config.php，此处统一调用可保证
+ * 连 track_click.php / admin/icon_refresh.php 这类 AJAX 接口也一并覆盖，
+ * 避免以后新增入口时漏掉。
+ */
+security_headers();

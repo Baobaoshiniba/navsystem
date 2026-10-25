@@ -8,10 +8,13 @@
  *  - 一律落盘本地：不管来自源站还是第三方，取回的图片都写入 assets/icons/，前台只读本地文件；
  *  - 安全：仅 http/https；禁止内网 / 回环 / 保留地址（SSRF 防护，含 DNS 解析校验与重定向逐跳校验）；
  *    连接 / 读取超时、响应体积上限、图片魔数校验，非法内容一律丢弃；
+ *    其中「图片魔数识别」与「SSRF 防护」两块已拆到 lib/icon_security.php；
  *  - 失败静默降级，绝不抛异常打断页面。
  */
 
 declare(strict_types=1);
+
+require_once __DIR__ . '/icon_security.php';
 
 /** 缓存目录（相对项目根） */
 const ICON_CACHE_DIRNAME      = 'assets/icons';
@@ -87,156 +90,7 @@ function icon_display_host(string $url): string
 }
 
 /* =====================================================================
- * 2. 图片识别（魔数校验）
- * ===================================================================== */
-
-/**
- * 依据文件头识别图片类型
- *
- * 只放行位图格式；SVG / HTML / 脚本等内容一律返回空串被丢弃
- * （避免把可执行内容落到同源静态目录造成 XSS）。
- */
-function icon_image_type(string $bytes): string
-{
-    $len = strlen($bytes);
-    if ($len < 4) {
-        return '';
-    }
-    if (strncmp($bytes, "\x89PNG\r\n\x1a\n", 8) === 0) {
-        return 'png';
-    }
-    if (strncmp($bytes, "\xFF\xD8\xFF", 3) === 0) {
-        return 'jpg';
-    }
-    if (strncmp($bytes, 'GIF87a', 6) === 0 || strncmp($bytes, 'GIF89a', 6) === 0) {
-        return 'gif';
-    }
-    if ($len >= 12 && strncmp($bytes, 'RIFF', 4) === 0 && substr($bytes, 8, 4) === 'WEBP') {
-        return 'webp';
-    }
-    if (strncmp($bytes, "\x00\x00\x01\x00", 4) === 0) {
-        return 'ico';
-    }
-    if (strncmp($bytes, 'BM', 2) === 0) {
-        return 'bmp';
-    }
-    return '';
-}
-
-/* =====================================================================
- * 3. SSRF 防护
- * ===================================================================== */
-
-/** 单个 IP 是否属于公网可访问地址（私网 / 回环 / 保留地址一律拒绝） */
-function icon_ip_is_public(string $ip): bool
-{
-    $ip = trim($ip, "[] \t\n\r\0\x0B");
-    // IPv4-mapped IPv6（::ffff:127.0.0.1）先拆出内层 IPv4 再判定，避免绕过
-    if (stripos($ip, '::ffff:') === 0) {
-        $inner = substr($ip, 7);
-        if (filter_var($inner, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            $ip = $inner;
-        }
-    }
-    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-        return false;
-    }
-    return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
-}
-
-/** 主机名是否属于天然禁止的目标（localhost / .local / 云元数据域名等） */
-function icon_host_is_blocked(string $host): bool
-{
-    $host = strtolower(trim($host, "[] \t\n\r\0\x0B"));
-    if ($host === '') {
-        return true;
-    }
-    if ($host === 'localhost' || substr($host, -10) === '.localhost') {
-        return true;
-    }
-    if (substr($host, -6) === '.local' || substr($host, -6) === '.internal') {
-        return true;
-    }
-    if ($host === 'metadata.google.internal' || $host === 'metadata') {
-        return true;
-    }
-    // 纯 IP 字面量：直接判定公网属性
-    if (filter_var($host, FILTER_VALIDATE_IP)) {
-        return !icon_ip_is_public($host);
-    }
-    return false;
-}
-
-/** 解析域名对应的全部 IP（IPv4 + IPv6） */
-function icon_resolve_host_ips(string $host): array
-{
-    if (filter_var($host, FILTER_VALIDATE_IP)) {
-        return [$host];
-    }
-    $ips = [];
-    $records = @dns_get_record($host, DNS_A | DNS_AAAA);
-    if (is_array($records)) {
-        foreach ($records as $r) {
-            if (!empty($r['ip'])) {
-                $ips[] = (string)$r['ip'];
-            }
-            if (!empty($r['ipv6'])) {
-                $ips[] = (string)$r['ipv6'];
-            }
-        }
-    }
-    if (!$ips) {
-        $v4 = @gethostbynamel($host);
-        if (is_array($v4)) {
-            $ips = $v4;
-        }
-    }
-    return array_values(array_unique($ips));
-}
-
-/**
- * URL 是否可安全请求
- *
- * @param string[] $allowHosts 仅本地冒烟测试使用的主机白名单，生产调用一律留空
- */
-function icon_url_is_safe(string $url, array $allowHosts = []): bool
-{
-    $parts = @parse_url(trim($url));
-    if (!is_array($parts)) {
-        return false;
-    }
-    $scheme = strtolower($parts['scheme'] ?? '');
-    if ($scheme !== 'http' && $scheme !== 'https') {
-        return false;                       // 只允许 http/https（挡掉 file:// gopher:// 等）
-    }
-    $host = (string)($parts['host'] ?? '');
-    if ($host === '') {
-        return false;
-    }
-    $allow = array_map('strtolower', $allowHosts);
-    if ($allow && in_array(strtolower($host), $allow, true)) {
-        return true;                        // 测试专用豁免
-    }
-    if (icon_host_is_blocked($host)) {
-        return false;
-    }
-    if (filter_var($host, FILTER_VALIDATE_IP)) {
-        return true;                        // 公网 IP 字面量，前面已判定
-    }
-    $ips = icon_resolve_host_ips($host);
-    if (!$ips) {
-        return false;                       // 解析不出地址 → 直接放弃，不盲目请求
-    }
-    foreach ($ips as $ip) {
-        if (!icon_ip_is_public($ip)) {
-            return false;                   // 任一解析结果落在内网即拒绝
-        }
-    }
-    return true;
-}
-
-/* =====================================================================
- * 4. HTTP 抓取（手动跟随重定向，逐跳校验）
+ * 2. HTTP 抓取（手动跟随重定向，逐跳校验）
  * ===================================================================== */
 
 /** 相对地址补全为绝对地址 */
@@ -356,7 +210,7 @@ function icon_http_get(string $url, array $allowHosts = [], int $maxBytes = ICON
 }
 
 /* =====================================================================
- * 5. 候选地址
+ * 3. 候选地址
  * ===================================================================== */
 
 /** 第三方 favicon 服务兜底地址（按顺序尝试） */
@@ -492,7 +346,7 @@ function icon_mark_thirdparty_down(string $provider, string $error): void
 }
 
 /* =====================================================================
- * 6. 抓取 / 落盘 / 入库
+ * 4. 抓取 / 落盘 / 入库
  * ===================================================================== */
 
 /** 校验候选图片字节，返回可落盘的扩展名（非法返回空串） */
@@ -697,7 +551,7 @@ function icon_fetch_for_link(PDO $pdo, array $link, array $options = []): array
 }
 
 /* =====================================================================
- * 7. 前台展示辅助
+ * 5. 前台展示辅助
  * ===================================================================== */
 
 /** 该链接本地缓存文件是否有效（返回文件名，无效返回空串） */

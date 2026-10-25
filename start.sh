@@ -29,4 +29,6 @@ echo "company-nav 启动中：http://${HOST}:${PORT}   前台 index.php / 后台
 echo "PHP_CLI_SERVER_WORKERS=${WORKERS}（Windows 下该环境变量不生效，会回退为单进程）"
 echo "数据库：SQLite WAL + busy_timeout=60000ms，支持多 worker 并发读写。按 Ctrl+C 停止。"
 
-exec php -S "${HOST}:${PORT}" -t .
+# 用 router.php 而非 -t . 托管：-t 模式会把 data/ 下的 SQLite 当静态文件发出去，
+# 导致管理员密码哈希可被直接下载。router.php 会拦截 data/ 与 .git/，其余请求照原样放行。
+exec php -S "${HOST}:${PORT}" router.php
