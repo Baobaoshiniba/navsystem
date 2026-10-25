@@ -57,6 +57,7 @@ echo "PHP 测试"
 run "工程结构守卫"        php tests/structure.php
 run "点击去重与限流"      php tests/click_throttle.php
 run "后台数据层与鉴权"    php tests/admin_logic.php
+run "后台分页与回跳"      php tests/admin_paging.php
 run "双语言 · English"    php tests/i18n_smoke.php en
 run "双语言 · 中文"       php tests/i18n_smoke.php zh-CN
 # --strict：漏了英文词条直接判失败。新增 UI 文案忘了补 lang/en.php 会在这里被拦下。
@@ -64,6 +65,12 @@ run "双语言词条覆盖"      php tests/i18n_coverage.php --strict
 run "SSRF 与图片白名单"   php tests/icon_security.php
 run "密码保险箱加解密"    php tests/vault.php
 run "数据库备份与保留"    php tests/backup.php
+# 真起服务器发 HTTP 请求：data/ 的封堵只有跑起来才算数，静态断言管不住
+# 有人手工用 `php -S -t .` 起服务的情况（这条路径曾真实泄露整个数据库）。
+run "HTTP 运行时封堵"     php tests/http_serve.php
+# install.php 曾调用拿不到的 flash()：函数明明定义了，只是不在它的引入链上。
+# 全局搜函数名看不出来，必须按入口算可达集。
+run "入口函数可达性"      php tests/undefined_calls.php
 
 # ---------- 3. JS 测试 ----------
 if command -v node >/dev/null 2>&1; then

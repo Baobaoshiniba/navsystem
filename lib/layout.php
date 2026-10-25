@@ -141,3 +141,20 @@ function page_footer(string $base = ''): void
 </body>
 </html>';
 }
+
+/**
+ * 设置一次性提示信息（下个页面渲染后即清除）
+ *
+ * 放在这里而不是 admin/_init.php：_init.php 一进来就跑 require_login()，
+ * 那些「必须先放行才能访问」的页面（安装向导 install.php、登录页 login.php）
+ * 根本没法引入它。此前 flash() 定义在那里，结果 install.php 建号成功后
+ * 调用 flash() 直接抛 Error —— 账号其实已经建好了，页面却渲染成报错。
+ * 挪到由 config.php 加载的模块里，对所有入口一视同仁。
+ *
+ * @param string $type success 或 error
+ */
+function flash(string $msg, string $type = 'success'): void
+{
+    secure_session_start();
+    $_SESSION['flash'] = ['msg' => $msg, 'type' => $type];
+}

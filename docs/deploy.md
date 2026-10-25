@@ -68,6 +68,11 @@ server {
     location ^~ /data   { deny all; return 404; }
     location ^~ /.git/  { deny all; return 404; }
     location ~* \.(sqlite|sqlite3|db)$ { deny all; return 404; }
+    # 说明：nginx 会先把 URI 规范化（合并 //、解析 ./ 与 ../）再匹配 location，
+    # 所以 /./data/xxx 与 /assets/../data/xxx 在这里同样会被拦下，无需额外规则。
+    # 最后那条按扩展名兜底，防止将来有人在别的目录里放 SQLite 文件。
+    # 注意：PHP 内置服务器没有这层规范化保障，它的封堵逻辑在仓库根目录的
+    # router.php 里，必须自己做路径压平 —— 详见下节。
 
     # 图标缓存目录允许读取静态图片，但要挡住非图片执行
     location ^~ /assets/icons/ {
@@ -152,6 +157,14 @@ sqlite3 data/company_nav.sqlite "PRAGMA wal_checkpoint(TRUNCATE);"
 # 1. 数据库不可下载（最重要）
 curl -s -o /dev/null -w "%{http_code}\n" https://your-domain/data/company_nav.sqlite
 #    必须是 404 或 403，返回 200 请立即停站整改
+
+# 1b. 换几种写法再试一遍 —— 只测直连路径是不够的。
+#     直连被拦、但这些写法返回 200 的情况真实发生过（PHP 内置服务器场景下
+#     /./data/ 与 /assets/../data/ 都能整库下载）：
+#        curl -s -o /dev/null -w "%{http_code}\n" https://your-domain/./data/company_nav.sqlite
+#        curl -s -o /dev/null -w "%{http_code}\n" https://your-domain/assets/../data/company_nav.sqlite
+#        curl -s -o /dev/null -w "%{http_code}\n" https://your-domain/%2e/data/company_nav.sqlite
+#     同样是 404 或 403 才算过；返回 200 就是拦截规则只匹配了原始 URI，没有做路径规范化。
 
 # 2. 备份同样不可下载
 curl -s -o /dev/null -w "%{http_code}\n" https://your-domain/data/backups/

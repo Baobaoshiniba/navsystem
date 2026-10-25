@@ -181,14 +181,9 @@ function admin_footer(): void
     page_footer('../');
 }
 
-/**
- * 设置一次性提示信息
- */
-function flash(string $msg, string $type = 'success'): void
-{
-    secure_session_start();
-    $_SESSION['flash'] = ['msg' => $msg, 'type' => $type];
-}
+// flash() 已移至 lib/layout.php（由 config.php 加载）。
+// 原位置在 admin/_init.php 时，install.php / login.php 这类「必须先放行」的页面
+// 引入不了它（_init.php 一进来就 require_login()），建号成功后调用会直接抛 Error。
 
 /**
  * 获取所有分类（后台下拉使用）

@@ -116,7 +116,10 @@ if (is_post()) {
             $db->rollBack();
         }
         $rememberForm(is_string($action) ? $action : '', $username, $siteValues);
-        flash(t('操作失败，数据未发生任何变更：') . $e->getMessage(), 'error');
+        // 异常原文是 SQL、表结构、文件路径这类内部细节 —— 连站长都不必看到，
+        // 落到服务器错误日志里去查就够了。与 install.php 的处理保持一致。
+        error_log('[navsystem] reset failed: ' . $e->getMessage());
+        flash(t('操作失败，数据未发生任何变更，请查看服务器错误日志。'), 'error');
         redirect('reset.php');
     }
 

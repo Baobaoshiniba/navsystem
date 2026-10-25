@@ -79,7 +79,16 @@ if (is_post()) {
                 flash(t('站长账号已创建，欢迎使用。'));
                 redirect('index.php');
             } catch (Throwable $e) {
-                $errors[] = $e->getMessage();
+                // 业务校验的失败（用户名已存在、密码太短）本来就该给用户看；
+                // 但代码缺陷同样会落到这里，而那时 $e->getMessage() 是
+                // 「Call to undefined function ...」这类内部信息 —— 安装页对匿名访客开放，
+                // 照原样上屏等于把实现细节送出去。这里只留一句人话，细节写进本机错误日志。
+                if ($e instanceof Error) {
+                    error_log('[navsystem] setup failed: ' . $e->getMessage());
+                    $errors[] = t('创建账号失败，请稍后重试。');
+                } else {
+                    $errors[] = $e->getMessage();
+                }
             }
         }
     }
