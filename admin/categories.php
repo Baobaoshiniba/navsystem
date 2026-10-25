@@ -74,7 +74,6 @@ if (is_post()) {
                 $min = (int)$db->query('SELECT MIN(sort_order) FROM categories')->fetchColumn();
                 $db->prepare('UPDATE categories SET sort_order=? WHERE id=?')->execute([$min - 1, $id]);
             } elseif ($swapId !== null) {
-                $a = (int)$db->prepare('SELECT sort_order FROM categories WHERE id=?')->execute([$id]) ?? 0;
                 $stmt = $db->prepare('SELECT sort_order FROM categories WHERE id=?');
                 $stmt->execute([$id]);
                 $a = (int)$stmt->fetchColumn();
@@ -221,7 +220,7 @@ foreach ($cats as $c) {
                                 <button type="submit" class="mini-<?= (int)$cat['is_active'] === 1 ? 'ghost' : 'ok' ?>"><?= (int)$cat['is_active'] === 1 ? ('' . ui_icon('pause') . ' ' . t('停用')) : ('' . ui_icon('arrow') . ' ' . t('启用')) ?></button>
                             </form>
                             <form method="post" action="categories.php" class="inline-form"
-                                  onsubmit="<?= e('return confirm(' . json_encode(t('确定删除分类「{name}」及其下 {count} 条链接吗？此操作不可恢复！', ['name' => localized_field($cat, 'name'), 'count' => (int)$cat['link_count']]), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ');') ?>">
+                                  data-confirm="<?= e(t('确定删除分类「{name}」及其下 {count} 条链接吗？此操作不可恢复！', ['name' => localized_field($cat, 'name'), 'count' => (int)$cat['link_count']])) ?>">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?= $cid ?>">

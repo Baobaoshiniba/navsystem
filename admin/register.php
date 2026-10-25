@@ -5,9 +5,11 @@
  * 行为契约：
  *  - 是否可注册由「站点设置 → 开放注册」开关决定（settings 键 register_enabled，默认关闭）；
  *    关闭时页面只展示「注册已关闭」提示与返回登录入口，POST 一律拦截。
- *  - 开启时：用户名（3–20 位，中英文 / 数字 / 下划线 / 连字符 / 点）+ 密码（≥6 位）+ 确认密码；
- *    校验通过后以 password_hash() 写入 admin_users，成功后跳登录页并提示。
+ *  - 开启时：用户名（3–20 位，中英文 / 数字 / 下划线 / 连字符 / 点）+ 密码（≥8 位）+ 确认密码
+ *    + 图形验证码；校验通过后以 password_hash() 写入 admin_users，成功后跳登录页并提示。
  *  - 重复用户名 / 密码过短 / 两次不一致 / 用户名为空或格式不合法，均给出明确错误并回填用户名。
+ *  - 限流：注册**成功**也计入同一 IP 的计数（只统计失败挡不住脚本，它每次都能成功），
+ *    达到 REGISTER_MAX_PER_WINDOW 后锁定 REGISTER_LOCK_SECONDS 秒。
  *  - 视觉与登录页同源：左侧品牌区 + 右侧玻璃表单卡，样式统一并入 assets/css/style.css 第 11 节。
  */
 
@@ -28,11 +30,22 @@ $len = static function (string $s): int {
     return function_exists('mb_strlen') ? mb_strlen($s) : strlen($s);
 };
 
+// 进入本页面前先看该 IP 是否已因注册过于频繁被锁（与登录限流分开独立计数）
+$lockedRegister = throttle_remaining('register', login_client_ip());
+
 if (is_post()) {
     if (!$openRegister) {
         $errors[] = t('注册已关闭，暂不支持创建新账号。');
     } elseif (!csrf_verify()) {
         $errors[] = t('安全校验失败，请刷新页面重试。');
+    } elseif ($lockedRegister > 0) {
+        $errors[] = (t('注册过于频繁，请') . ' ') . $lockedRegister . (' ' . t('秒后再试。'));
+    } elseif (!captcha_verify(post('captcha'))) {
+        // 验证码错误走独立计数，与登录页共用 captcha 维度
+        $left = throttle_fail('captcha', login_client_ip(), LOGIN_CAPTCHA_FAIL_LIMIT, LOGIN_CAPTCHA_LOCK_SECONDS);
+        $errors[] = $left > 0
+            ? (t('验证码错误或已失效，请重新输入。还可尝试') . ' ') . $left . (' ' . t('次。'))
+            : t('验证码连续错误过多，请稍后再试。');
     } else {
         $username = post('username');
         $password = (string)($_POST['password'] ?? '');
@@ -52,8 +65,8 @@ if (is_post()) {
         if ($password === '') {
             $errors[]         = t('请输入密码。');
             $flags['password'] = true;
-        } elseif ($len($password) < 6) {
-            $errors[]         = t('密码至少 6 位。');
+        } elseif ($len($password) < ADMIN_PASSWORD_MIN_LENGTH) {
+            $errors[]         = t('新密码长度至少 8 位。');
             $flags['password'] = true;
         } elseif ($len($password) > 64) {
             $errors[]         = t('密码最长 64 位。');
@@ -68,6 +81,9 @@ if (is_post()) {
         if (!$errors) {
             try {
                 admin_create_user($username, $password);
+                // 成功也计数：否则脚本每次都能注册成功，照样能批量开号
+                throttle_fail('register', login_client_ip(), REGISTER_MAX_PER_WINDOW, REGISTER_LOCK_SECONDS);
+                $lockedRegister = throttle_remaining('register', login_client_ip());
                 redirect('login.php?registered=1');
             } catch (Throwable $ex) {
                 $errors[]          = $ex->getMessage();
@@ -116,7 +132,7 @@ html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
                 <h1 class="auth-title" id="authTitle"><?= $openRegister ? t('注册管理账号') : t('注册已关闭') ?></h1>
                 <p class="auth-sub">
                     <?= $openRegister
-                        ? t('用户名 3–20 位，密码不少于 6 位。')
+                        ? t('用户名 3–20 位，密码不少于 8 位。')
                         : t('管理员已在「站点设置」中关闭了注册入口。') ?>
                 </p>
             </div>
@@ -147,7 +163,7 @@ html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
                         <label class="field-label" for="password"><?= e(t('密码')) ?></label>
                         <input class="form-input<?= $flags['password'] ? ' is-error' : '' ?>" type="password"
                                id="password" name="password" required autocomplete="new-password"
-                               placeholder="<?= e(t('至少 6 位')) ?>">
+                               placeholder="<?= e(t('至少 8 位')) ?>">
                     </div>
 
                     <div class="form-field">
@@ -157,8 +173,21 @@ html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
                                autocomplete="new-password" placeholder="<?= e(t('请再次输入密码')) ?>">
                     </div>
 
-                    <button type="submit" class="btn-primary btn-block"><?= e(t('注 册')) ?></button>
-                </form>
+                    <div class="form-field">
+                        <label class="field-label" for="captcha"><?= e(t('验证码')) ?></label>
+                        <div class="captcha-row">
+                            <input class="form-input" type="text" id="captcha" name="captcha"
+                                   required autocomplete="off" maxlength="4"
+                                   placeholder="<?= e(t('请输入右侧 4 位字符')) ?>">
+                            <img class="captcha-img" id="captchaImg" src="captcha.php?v=<?= time() ?>"
+                                 alt="<?= e(t('验证码')) ?>" title="<?= e(t('点击换一张')) ?>"
+                                 data-captcha-src="captcha.php">
+                        </div>
+                    </div>
+
+                <button type="submit" class="btn-primary btn-block"><?= e(t('注 册')) ?></button>
+                <p class="field-hint auth-role-note"><?= e(t('注册的账号为「编辑」权限，可维护链接与分类；如需站务权限请联系站长。')) ?></p>
+            </form>
             <?php endif; ?>
 
             <div class="auth-alt">

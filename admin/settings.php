@@ -9,7 +9,8 @@
 declare(strict_types=1);
 
 require __DIR__ . '/_init.php';
-require_login();
+// 站点设置含「开放注册」开关，一旦失守等于把后台开放给公网 —— 仅站长可进入
+require_owner();
 secure_session_start();
 
 /* 展示字段配置：[label, type, hint]（同时作为保存白名单，避免误写无关键） */

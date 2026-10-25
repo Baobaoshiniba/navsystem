@@ -14,7 +14,8 @@
 declare(strict_types=1);
 
 require __DIR__ . '/_init.php';
-require_login();
+// 清空 / 重置不可恢复，且弹窗里能直接改掉管理员账号 —— 仅站长可进入
+require_owner();
 
 $db       = db();
 $siteKeys = ['site_name', 'logo_text', 'site_slogan', 'search_placeholder', 'footer_text'];
@@ -61,8 +62,8 @@ if (is_post()) {
     if ($password !== '' || $password2 !== '') {
         if ($password !== $password2) {
             $errors[] = t('两次输入的新密码不一致，请重新输入。');
-        } elseif ($pwdLen < 6) {
-            $errors[] = t('新密码长度至少 6 位。');
+        } elseif ($pwdLen < ADMIN_PASSWORD_MIN_LENGTH) {
+            $errors[] = t('新密码长度至少 8 位。');
         }
     }
     if (!$ack) {
@@ -78,11 +79,17 @@ if (is_post()) {
         redirect('reset.php');
     }
 
+    // 清空是不可逆的，动手前先留一份快照（README 早就这么写了，此前代码里并没有）
+    $backupPath = backup_create($action === 'blank' ? 'blank' : 'reset');
+
     try {
         $db->beginTransaction();
 
         // 1) 必要数据：管理员账号入库（password_hash 存储；密码留空表示保持原密码不变）
         admin_save_account($username, $password);
+        // 改名后同步会话里的用户名：否则下一次请求会因「会话账号查不到」被判为幽灵会话踢出。
+        // 角色也重取一次，避免会话里留存过期角色。
+        $_SESSION['admin_username'] = $username;
 
         // 2) 必要数据：站点 5 项文案（留空则回退系统默认文案）
         $upsertSetting = $db->prepare(
@@ -116,10 +123,15 @@ if (is_post()) {
     // 账号可能已改名，同步会话中的用户名
     $_SESSION['admin_username'] = $username;
 
+    // 备份成功就把文件名告诉站长，方便需要时找回；失败也照常完成重置，只在提示里不提
+    $backupNote = $backupPath !== ''
+        ? (' ' . t('已自动备份当前数据库到') . ' data/backups/' . basename($backupPath) . '。')
+        : '';
+
     if ($action === 'reset') {
-        flash(t('演示数据已重置：分类与链接已恢复为演示初始状态，管理员账号与站点文案已保存。'));
+        flash(t('演示数据已重置：分类与链接已恢复为演示初始状态，管理员账号与站点文案已保存。') . $backupNote);
     } else {
-        flash(t('已清空为空白：分类与链接已清空（ID 从 1 重新开始），管理员账号与站点文案已保存。'));
+        flash(t('已清空为空白：分类与链接已清空（ID 从 1 重新开始），管理员账号与站点文案已保存。') . $backupNote);
     }
     redirect('reset.php');
 }
@@ -263,7 +275,7 @@ admin_header(t('重置演示'), 'reset');
     </div>
 </div>
 
-<script>
+<script<?= nonce_attr() ?>>
 (function () {
     var backdrop = document.getElementById('resetModal');
     if (!backdrop) { return; }
@@ -357,8 +369,8 @@ admin_header(t('重置演示'), 'reset');
             if (pwdEl.value !== pwd2El.value) {
                 e.preventDefault(); showError((<?= jt('两次输入的新密码不一致，请重新输入。') ?>), pwd2El); return;
             }
-            if (pwdEl.value.length < 6) {
-                e.preventDefault(); showError((<?= jt('新密码长度至少 6 位。') ?>), pwdEl); return;
+            if (pwdEl.value.length < <?= ADMIN_PASSWORD_MIN_LENGTH ?>) {
+                e.preventDefault(); showError((<?= jt('新密码长度至少 8 位。') ?>), pwdEl); return;
             }
         }
         if (!ackEl.checked) {

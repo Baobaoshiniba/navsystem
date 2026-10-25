@@ -142,7 +142,10 @@ function vault_decrypt(string $enc, string $key): ?string
     }
 
     $raw = base64_decode($enc, true);
-    if ($raw === false || strlen($raw) <= VAULT_GCM_IV_BYTES + VAULT_GCM_TAG_BYTES) {
+    // 注意这里是 < 而不是 <=：空明文加密后正好是 IV + TAG 的长度（28 字节），
+    // 是合法密文，解出来是空串。写成 <= 会让「密码留空的条目」永远解不出来，
+    // 存进去就再也读不出来（由 tests/vault.php 抓出）。
+    if ($raw === false || strlen($raw) < VAULT_GCM_IV_BYTES + VAULT_GCM_TAG_BYTES) {
         return null;
     }
 

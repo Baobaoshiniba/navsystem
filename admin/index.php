@@ -155,8 +155,16 @@ if (is_post()) {
         $pos = array_search($id, $keys, true);
         if ($pos !== false) {
             if ($mode === 'top') {
-                // 置顶：取全表 MIN(sort_order) - 1。sort_order 全表唯一，取更小值可保证置顶后必定排在首位且不与任何记录撞值
-                $min = (int)$db->query('SELECT MIN(sort_order) FROM links')->fetchColumn();
+                // 置顶：取作用域内 MIN(sort_order) - 1，保证置顶后必定排在首位且不与任何记录撞值。
+                // 作用域与本次操作的范围保持一致：某分类 tab 内只在该分类内取最小值，
+                // 「全部」tab 取全表最小值。
+                if ($retCat > 0) {
+                    $stmt = $db->prepare('SELECT MIN(sort_order) FROM links WHERE category_id = ?');
+                    $stmt->execute([$retCat]);
+                } else {
+                    $stmt = $db->query('SELECT MIN(sort_order) FROM links');
+                }
+                $min = (int)$stmt->fetchColumn();
                 $db->prepare('UPDATE links SET sort_order=? WHERE id=?')->execute([$min - 1, $id]);
             } else {
                 $swapId = null;
@@ -481,7 +489,7 @@ $iconStats = icon_cache_stats($db);
                                 <button type="submit" class="mini-<?= (int)$link['is_active'] === 1 ? 'ghost' : 'ok' ?>"><?= (int)$link['is_active'] === 1 ? ('' . ui_icon('pause') . ' ' . t('停用')) : ('' . ui_icon('arrow') . ' ' . t('启用')) ?></button>
                             </form>
                             <form method="post" action="index.php" class="inline-form"
-                                  onsubmit="<?= e('return confirm(' . json_encode(t('确定删除链接「{name}」吗？此操作不可恢复！', ['name' => localized_field($link, 'title')]), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ');') ?>">
+                                  data-confirm="<?= e(t('确定删除链接「{name}」吗？此操作不可恢复！', ['name' => localized_field($link, 'title')])) ?>">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?= $lid ?>">
@@ -546,7 +554,7 @@ $iconStats = icon_cache_stats($db);
     </section>
 </div>
 
-<script>
+<script<?= nonce_attr() ?>>
 /* 图标抓取交互：批量刷新分批 AJAX 推进（不阻塞页面）+ 单条重抓即时回显 */
 (function () {
     'use strict';

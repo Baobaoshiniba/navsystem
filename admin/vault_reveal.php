@@ -14,7 +14,7 @@ declare(strict_types=1);
 require __DIR__ . '/_init.php';
 require __DIR__ . '/_vault.php';
 
-require_login();
+require_owner();
 secure_session_start();
 
 header('Content-Type: application/json; charset=utf-8');
