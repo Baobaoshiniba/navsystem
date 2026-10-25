@@ -1,16 +1,3 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: db22a367f7e0f060a916af80a7e3d739_8283026cadb311f18874525400287e28
-    ReservedCode1: RsVBzYPg24YwuhSFS0JwGnnFFLJEnIIJbGY2V/ZJ3a28cSueOxOQrhnuyR1JABM4yy7d7NAYBo/3pBUlxAGONw3q5gqI5/qOThbUdKIMxIAivXuDdmLX6Pwiajuu/sxIX8W10AXE/qS0Q1lQkDKoHOXqpSFguLZhMY+E4Y7l9yp5o5vQOkFs5J3X5lI=
-    ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: db22a367f7e0f060a916af80a7e3d739_8283026cadb311f18874525400287e28
-    ReservedCode2: RsVBzYPg24YwuhSFS0JwGnnFFLJEnIIJbGY2V/ZJ3a28cSueOxOQrhnuyR1JABM4yy7d7NAYBo/3pBUlxAGONw3q5gqI5/qOThbUdKIMxIAivXuDdmLX6Pwiajuu/sxIX8W10AXE/qS0Q1lQkDKoHOXqpSFguLZhMY+E4Y7l9yp5o5vQOkFs5J3X5lI=
----
-
-
-
 # 公司导航页（Company Nav）
 
 科技感公司内部/对外导航门户：PHP 原生 + SQLite（PDO）实现，无 Composer、无框架，开箱即用。支持深/浅色主题一键切换、分类分组导航、搜索即时过滤、点击统计与独立管理后台。
