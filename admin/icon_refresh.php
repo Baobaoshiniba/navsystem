@@ -53,7 +53,7 @@ function icon_item_payload(array $link, array $result): array
 $db = db();
 
 if (!is_post()) {
-    icon_json(['ok' => false, 'error' => '仅支持 POST 请求']);
+    icon_json(['ok' => false, 'error' => t('仅支持 POST 请求')]);
 }
 guard_csrf();
 
@@ -70,12 +70,12 @@ if ($action === 'single') {
     $stmt->execute([$id]);
     $link = $stmt->fetch();
     if (!$link) {
-        icon_json(['ok' => false, 'error' => '链接不存在']);
+        icon_json(['ok' => false, 'error' => t('链接不存在')]);
     }
     try {
         $result = icon_fetch_for_link($db, $link, ['force' => true]);
     } catch (Throwable $e) {
-        $result = ['ok' => false, 'file' => '', 'source' => '', 'status' => 'fail', 'message' => '抓取异常：' . $e->getMessage()];
+        $result = ['ok' => false, 'file' => '', 'source' => '', 'status' => 'fail', 'message' => t('抓取异常：') . $e->getMessage()];
     }
     icon_json(['ok' => true, 'item' => icon_item_payload($link, $result)]);
 }
@@ -105,7 +105,7 @@ if ($action === 'batch') {
         try {
             $result = icon_fetch_for_link($db, $link, ['force' => true]);
         } catch (Throwable $e) {
-            $result = ['ok' => false, 'file' => '', 'source' => '', 'status' => 'fail', 'message' => '抓取异常：' . $e->getMessage()];
+            $result = ['ok' => false, 'file' => '', 'source' => '', 'status' => 'fail', 'message' => t('抓取异常：') . $e->getMessage()];
         }
         if ($result['ok']) {
             $okCount++;
@@ -137,4 +137,4 @@ if ($action === 'batch') {
     ]);
 }
 
-icon_json(['ok' => false, 'error' => '未知操作']);
+icon_json(['ok' => false, 'error' => t('未知操作')]);

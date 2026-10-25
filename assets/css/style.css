@@ -562,7 +562,7 @@ html[data-theme="dark"] .link-icon {                                 /* 深色�
 }
 /* 全部抓取失败：首字母渐变徽章 */
 .link-icon-fallback {
-    background: linear-gradient(135deg, hsl(var(--badge-hue), 64%, 56%), hsl(var(--badge-hue) + 26, 72%, 46%));
+    background: linear-gradient(135deg, hsl(var(--badge-hue), 64%, 56%), hsl(calc(var(--badge-hue) + 26), 72%, 46%));
     border-color: transparent;
     color: #fff;
 }
@@ -1479,7 +1479,7 @@ html[data-theme="dark"] .data-table td { border-bottom-color: rgba(148, 163, 184
     font-size: 16px;
     font-weight: 700;
     color: #fff;
-    background: linear-gradient(135deg, hsl(var(--badge-hue), 64%, 56%), hsl(var(--badge-hue) + 26, 72%, 46%));
+    background: linear-gradient(135deg, hsl(var(--badge-hue), 64%, 56%), hsl(calc(var(--badge-hue) + 26), 72%, 46%));
 }
 html[data-theme="dark"] .icon-cell {
     background: color-mix(in srgb, #fff 10%, transparent);
@@ -2926,3 +2926,16 @@ html[data-theme="dark"] .filter-pill.is-active { color: #06121f; }
     .agg-form { padding-left: 40px; }
     .agg-icon { left: 15px; }
 }
+
+/* Shared bilingual controls, matching existing theme colors. */
+.language-switch { display:inline-flex; align-items:center; gap:3px; padding:3px; border:1px solid var(--border, #64748b55); border-radius:10px; flex-shrink:0; }
+.language-option { padding:6px 9px; border-radius:7px; color:inherit; text-decoration:none; font-size:13px; line-height:1.4; white-space:nowrap; transition:background-color .15s, color .15s; }
+.language-option.is-active { background:#2563eb; color:#fff; }
+.language-option:focus-visible { outline:2px solid #38bdf8; outline-offset:2px; }
+.auth-language { display:flex; justify-content:flex-end; margin-bottom:18px; }
+html[lang="en"] .btn-primary, html[lang="en"] .btn-ghost, html[lang="en"] .admin-link { white-space:normal; height:auto; }
+html[lang="en"] .brand-name, html[lang="en"] .page-title { overflow-wrap:anywhere; }
+.navbar-actions { flex-wrap:wrap; }
+@media (max-width:700px) { .navbar-inner { flex-wrap:wrap; } .navbar-actions { gap:8px; } html[lang="en"] .hero-title { font-size:clamp(28px, 7vw, 52px); } }
+@media (prefers-reduced-motion:reduce) { .language-option { transition:none; } }
+.app-footer { color:var(--text, #514220); }

@@ -25,7 +25,7 @@ function guard_csrf(): void
 {
     if (!csrf_verify()) {
         http_response_code(400);
-        exit('CSRF 校验失败，请返回重试。');
+        exit(('CSRF ' . t('校验失败，请返回重试。')));
     }
 }
 
@@ -60,7 +60,7 @@ function admin_header(string $title, string $activeNav = ''): void
     $siteName = e(setting('site_name'));
     $theme    = theme_preference();
     echo '<!DOCTYPE html>
-<html lang="zh-CN" data-theme="' . $theme . '">
+<html lang="' . e(locale()) . '" data-theme="' . $theme . '">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -75,12 +75,12 @@ html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
 <body class="app-body admin-body">';
 
     $items = [
-        'links'       => ['index.php',        '🔗 链接管理'],
-        'categories'  => ['categories.php',   '📂 分类管理'],
-        'vault'       => ['vault.php',        '🔐 密码保险箱'],
-        'settings'    => ['settings.php',     '⚙️ 站点设置'],
-        'stats'       => ['stats.php',        '📊 点击统计'],
-        'reset'       => ['reset.php',        '♻️ 重置演示'],
+        'links'       => ['index.php',        ('🔗 ' . t('链接管理'))],
+        'categories'  => ['categories.php',   ('📂 ' . t('分类管理'))],
+        'vault'       => ['vault.php',        ('🔐 ' . t('密码保险箱'))],
+        'settings'    => ['settings.php',     ('⚙️ ' . t('站点设置'))],
+        'stats'       => ['stats.php',        ('📊 ' . t('点击统计'))],
+        'reset'       => ['reset.php',        ('♻️ ' . t('重置演示'))],
     ];
 
     echo '<header class="navbar glass">
@@ -88,25 +88,25 @@ html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
         <div class="brand">
             ' . logo_badge_html() . '
             <div>
-                <div class="brand-name">' . $siteName . ' · 管理后台</div>
-                <div class="brand-tag">内容维护与数据统计</div>
+                <div class="brand-name">' . $siteName . (' · ' . t('管理后台') . '</div>
+                <div class="brand-tag">' . t('内容维护与数据统计') . '</div>
             </div>
         </div>
         <div class="admin-nav-center">
-            <nav class="admin-nav-inner" aria-label="后台主导航">';
+            <nav class="admin-nav-inner" aria-label="' . t('后台主导航') . '">');
     foreach ($items as $key => $item) {
         $active = $key === $activeNav ? ' class="active"' : '';
         echo '<a href="' . $item[0] . '"' . $active . '>' . $item[1] . '</a>';
     }
-    echo '</nav>
+    echo ('</nav>
         </div>
         <div class="navbar-actions">
-            <a class="admin-link" href="../index.php">← 返回前台</a>
-            ' . theme_toggle_html() . '
-            <a class="admin-link danger-link" href="logout.php">退出</a>
+            <a class="admin-link" href="../index.php">← ' . t('返回前台') . '</a>
+            ') . theme_toggle_html() . ('
+            <a class="admin-link danger-link" href="logout.php">' . t('退出') . '</a>
         </div>
     </div>
-</header>';
+</header>');
 
     echo '<main class="container admin-main">';
 

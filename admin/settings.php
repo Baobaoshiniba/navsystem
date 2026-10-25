@@ -14,12 +14,16 @@ secure_session_start();
 
 /* 展示字段配置：[label, type, hint]（同时作为保存白名单，避免误写无关键） */
 $fieldMeta = [
-    'site_name'          => ['公司名称', 'text', '显示在页面标题与后台品牌区；留空使用默认值'],
-    'logo_text'          => ['Logo 文字', 'text', '顶栏 Logo 显示文字，可与公司名称不同；留空使用默认值'],
-    'site_slogan'        => ['副标题 / 欢迎语', 'text', '顶栏品牌区下方与主视觉区的一句话简介'],
-    'search_placeholder' => ['聚合搜索提示语', 'text', '前台聚合搜索栏输入框的提示语，{engine} 会替换为当前选中的引擎名；留空使用默认值'],
-    'footer_text'        => ['页脚版权 / 公司信息', 'text', '页面底部展示的版权与公司信息；留空使用默认值'],
+    'site_name'          => [t('站点名称'), 'text', t('显示在页面标题与后台品牌区；留空使用默认值')],
+    'logo_text'          => [('Logo ' . t('文字')), 'text', t('顶栏 Logo 显示文字，可与站点名称不同；留空使用默认值')],
+    'site_slogan'        => [t('副标题 / 欢迎语'), 'text', t('顶栏品牌区下方与主视觉区的一句话简介')],
+    'search_placeholder' => [t('聚合搜索提示语'), 'text', (t('前台聚合搜索栏输入框的提示语，') . '{engine} ' . t('会替换为当前选中的引擎名；留空使用默认值'))],
+    'footer_text'        => [t('页脚 / 项目信息'), 'text', t('页面底部展示的项目说明；留空使用默认值')],
 ];
+
+foreach ($fieldMeta as $key => $meta) {
+    $fieldMeta[$key . '_en'] = [$meta[0] . ' · English', $meta[1], t('英文留空时显示中文内容')];
+}
 
 if (is_post()) {
     guard_csrf();
@@ -62,8 +66,8 @@ if (is_post()) {
     // 「开放注册」开关：勾选写入 '1'，未勾选写入 '0'（键缺失即默认关闭），保存后登录 / 注册页即时生效
     save_setting('register_enabled', post('register_enabled') === '1' ? '1' : '0');
     flash($ignored > 0
-        ? '站点设置已保存，前台已生效；搜索引擎配置有 ' . $ignored . ' 行格式无效或重复，已自动忽略'
-        : '站点设置已保存，前台已生效');
+        ? (t('站点设置已保存，前台已生效；搜索引擎配置有') . ' ') . $ignored . (' ' . t('行格式无效或重复，已自动忽略'))
+        : t('站点设置已保存，前台已生效'));
     redirect('settings.php');
 }
 
@@ -76,13 +80,13 @@ foreach ($rows as $r) {
 $defaults   = site_settings_defaults();
 $registerOn = register_enabled();
 
-admin_header('站点设置', 'settings');
+admin_header(t('站点设置'), 'settings');
 
-echo '<div class="page-title-row">
-    <h1 class="page-title">站点设置</h1>
-    <p class="page-sub">管理前台展示文案，保存后立即生效；留空字段将回退为系统默认值。</p>
-    <a class="btn-ghost btn-sm" href="../index.php" target="_blank" rel="noopener">预览前台 ↗</a>
-</div>';
+echo ('<div class="page-title-row">
+    <h1 class="page-title">' . t('站点设置') . '</h1>
+    <p class="page-sub">' . t('管理前台展示文案，保存后立即生效；留空字段将回退为系统默认值。') . '</p>
+    <a class="btn-ghost btn-sm" href="../index.php" target="_blank" rel="noopener">' . t('预览前台') . ' ↗</a>
+</div>');
 
 echo '<form method="post" action="settings.php" class="panel glass">';
 echo csrf_field();
@@ -103,44 +107,44 @@ $enginesRaw    = setting('search_engines');
 $defaultEngine = default_search_engine_name();
 $engineNames   = array_map(static function (array $eng): string { return $eng['name']; }, $engines);
 
-echo '<div class="form-field">
-    <label class="field-label" for="f-search_engines">聚合搜索引擎清单</label>
+echo ('<div class="form-field">
+    <label class="field-label" for="f-search_engines">' . t('聚合搜索引擎清单') . '</label>
     <textarea class="form-input form-textarea" id="f-search_engines" name="search_engines" rows="8"
-              spellcheck="false" placeholder="' . e(default_search_engines_text()) . '">' . e($enginesRaw) . '</textarea>
-    <div class="field-hint">每行一个引擎，格式「名称|URL模板」；模板必须以 http:// 或 https:// 开头并包含 {q} 占位符（关键词会经 encodeURIComponent 编码后替换 {q}），例如：必应|https://www.bing.com/search?q={q}。</div>
-    <div class="field-hint">不符合格式的行会被自动忽略；整个清单留空时使用系统内置的 6 个引擎。</div>
-    <div class="field-hint">当前生效：' . e(implode(' / ', $engineNames)) . '（共 ' . count($engines) . ' 个）</div>
-</div>';
+              spellcheck="false" placeholder="') . e(default_search_engines_text()) . '">' . e($enginesRaw) . ('</textarea>
+    <div class="field-hint">' . t('每行一个引擎，格式「名称') . '|URL' . t('模板」；模板必须以 http') . ':// ' . t('或 https') . ':// ' . t('开头并包含') . ' {q} ' . t('占位符（关键词会经 encodeURIComponent 编码后替换') . ' {q}），' . t('例如：必应') . '|https://www.bing.com/search?q={q}。</div>
+    <div class="field-hint">' . t('不符合格式的行会被自动忽略；整个清单留空时使用系统内置的 4 个引擎。') . '</div>
+    <div class="field-hint">' . t('当前生效：')) . e(implode(' / ', $engineNames)) . ('（' . t('共') . ' ') . count($engines) . (' ' . t('个）') . '</div>
+</div>');
 
-echo '<div class="form-field">
-    <label class="field-label" for="f-search_engine_default">默认搜索引擎</label>
-    <select class="form-input" id="f-search_engine_default" name="search_engine_default">';
+echo ('<div class="form-field">
+    <label class="field-label" for="f-search_engine_default">' . t('默认搜索引擎') . '</label>
+    <select class="form-input" id="f-search_engine_default" name="search_engine_default">');
 foreach ($engines as $eng) {
     echo '<option value="' . e($eng['name']) . '"' . ($eng['name'] === $defaultEngine ? ' selected' : '') . '>' . e($eng['name']) . '</option>';
 }
-echo '</select>
-    <div class="field-hint">前台聚合搜索栏默认选中的引擎；若刚修改了上方清单，请先保存、回到本页后再调整默认项。</div>
-</div>';
+echo ('</select>
+    <div class="field-hint">' . t('前台聚合搜索栏默认选中的引擎；若刚修改了上方清单，请先保存、回到本页后再调整默认项。') . '</div>
+</div>');
 
 echo '</div>';
 
 // 「开放注册」开关：与文字项同表单提交，勾选即写入 '1'，取消勾选写回 '0'
-echo '<div class="switch-field">
+echo ('<div class="switch-field">
     <div class="switch-main">
-        <span class="field-label" id="lbl-register">开放注册</span>
-        <div class="field-hint">开启后，后台登录页显示「立即注册」入口，访客可自助创建管理账号；关闭时注册页一律不可提交。</div>
-        <div class="field-hint">当前状态：' . ($registerOn ? '已开启' : '已关闭（默认）') . '</div>
+        <span class="field-label" id="lbl-register">' . t('开放注册') . '</span>
+        <div class="field-hint">' . t('开启后，后台登录页显示「立即注册」入口，访客可自助创建管理账号；关闭时注册页一律不可提交。') . '</div>
+        <div class="field-hint">' . t('当前状态：')) . ($registerOn ? t('已开启') : t('已关闭（默认）')) . '</div>
     </div>
     <label class="switch">
         <input type="checkbox" name="register_enabled" value="1" aria-labelledby="lbl-register"' . ($registerOn ? ' checked' : '') . '>
         <span class="switch-track" aria-hidden="true"></span>
-        <span class="switch-state" aria-hidden="true">' . ($registerOn ? '开启' : '关闭') . '</span>
+        <span class="switch-state" aria-hidden="true">' . ($registerOn ? t('开启') : t('关闭')) . '</span>
     </label>
 </div>';
 
-echo '<div class="form-actions">
-    <button type="submit" class="btn-primary">保存设置</button>
-</div>';
+echo ('<div class="form-actions">
+    <button type="submit" class="btn-primary">' . t('保存设置') . '</button>
+</div>');
 echo '</form>';
 
 admin_footer();

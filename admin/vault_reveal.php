@@ -35,31 +35,31 @@ function vault_json(bool $ok, string $message = '', string $value = ''): void
 }
 
 if (!is_post()) {
-    vault_json(false, '请求方式不正确。');
+    vault_json(false, t('请求方式不正确。'));
 }
 
 if (!csrf_verify()) {
-    vault_json(false, 'CSRF 校验失败，请刷新页面后重试。');
+    vault_json(false, ('CSRF ' . t('校验失败，请刷新页面后重试。')));
 }
 
 if (post('action') !== 'reveal') {
-    vault_json(false, '不支持的操作。');
+    vault_json(false, t('不支持的操作。'));
 }
 
 if (!vault_is_unlocked()) {
-    vault_json(false, '保险箱已锁定（' . (int)(VAULT_IDLE_TIMEOUT / 60) . ' 分钟无操作），请重新输入主密码解锁。');
+    vault_json(false, t('保险箱已锁定（') . (int)(VAULT_IDLE_TIMEOUT / 60) . (' ' . t('分钟无操作），请重新输入主密码解锁。')));
 }
 
 $id    = (int)post('id', '0');
 $field = post('field');
 
 if (!in_array($field, ['username', 'password'], true)) {
-    vault_json(false, '不支持的字段。');
+    vault_json(false, t('不支持的字段。'));
 }
 
 $row = $id > 0 ? vault_get($id) : null;
 if ($row === null) {
-    vault_json(false, '条目不存在，可能已被删除。');
+    vault_json(false, t('条目不存在，可能已被删除。'));
 }
 
 // 本次读取同样刷新活动时间
@@ -77,12 +77,12 @@ if ($enc === '') {
 
 $key = vault_session_key();
 if ($key === '') {
-    vault_json(false, '保险箱已锁定，请重新解锁。');
+    vault_json(false, t('保险箱已锁定，请重新解锁。'));
 }
 
 $plain = vault_decrypt($enc, $key);
 if ($plain === null) {
-    vault_json(false, '密文解密失败，数据可能已损坏。');
+    vault_json(false, t('密文解密失败，数据可能已损坏。'));
 }
 
 vault_json(true, '', $plain);

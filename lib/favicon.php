@@ -551,7 +551,7 @@ function favicon_fetch_bytes(string $url, array $allowHosts = [], bool $allowThi
     };
 
     if (!icon_url_is_safe($url, $allowHosts)) {
-        return $miss('目标地址不被允许（非 http/https 或指向内网 / 回环 / 保留地址）');
+        return $miss(t('目标地址不被允许（非 http/https 或指向内网 / 回环 / 保留地址）'));
     }
 
     $host = icon_display_host($url);
@@ -564,7 +564,7 @@ function favicon_fetch_bytes(string $url, array $allowHosts = [], bool $allowThi
             if ($resp['ok']) {
                 $ext = icon_validate_bytes($resp['bytes']);
                 if ($ext !== '') {
-                    return ['status' => 'ok', 'bytes' => $resp['bytes'], 'ext' => $ext, 'source' => 'site', 'message' => '源站 /favicon.ico 抓取成功'];
+                    return ['status' => 'ok', 'bytes' => $resp['bytes'], 'ext' => $ext, 'source' => 'site', 'message' => (t('源站 /favicon') . '.ico ' . t('抓取成功'))];
                 }
             } elseif (icon_is_connect_error($resp['error'])) {
                 icon_mark_host_unreachable($host);  // 主机不可达，后续源站候选不必再试
@@ -580,7 +580,7 @@ function favicon_fetch_bytes(string $url, array $allowHosts = [], bool $allowThi
                 if ($ext === '') {
                     continue;
                 }
-                return ['status' => 'ok', 'bytes' => $resp['bytes'], 'ext' => $ext, 'source' => 'site', 'message' => '源站 <link rel="icon"> 抓取成功'];
+                return ['status' => 'ok', 'bytes' => $resp['bytes'], 'ext' => $ext, 'source' => 'site', 'message' => (t('源站') . ' <link rel="icon"> ' . t('抓取成功'))];
             }
         }
     }
@@ -603,11 +603,11 @@ function favicon_fetch_bytes(string $url, array $allowHosts = [], bool $allowThi
             if (icon_is_placeholder_image($resp['bytes'])) {
                 continue;                       // 第三方「无站点图标」占位图，不作为有效图标
             }
-            return ['status' => 'ok', 'bytes' => $resp['bytes'], 'ext' => $ext, 'source' => $provider, 'message' => '第三方服务兜底成功'];
+            return ['status' => 'ok', 'bytes' => $resp['bytes'], 'ext' => $ext, 'source' => $provider, 'message' => t('第三方服务兜底成功')];
         }
     }
 
-    return $miss('源站与第三方服务均未取到有效图标');
+    return $miss(t('源站与第三方服务均未取到有效图标'));
 }
 
 /** 第三方「域名无图标」占位图判定（尺寸过小视为占位） */
@@ -638,7 +638,7 @@ function favicon_fetch(string $url, array $options = []): array
     }
     $file = icon_store_bytes($result['bytes'], $result['ext'], $url);
     if ($file === '') {
-        return ['status' => 'fail', 'file' => '', 'source' => '', 'message' => '图标写入本地缓存失败'];
+        return ['status' => 'fail', 'file' => '', 'source' => '', 'message' => t('图标写入本地缓存失败')];
     }
     return ['status' => 'ok', 'file' => $file, 'source' => $result['source'], 'message' => $result['message']];
 }
@@ -663,14 +663,14 @@ function icon_fetch_for_link(PDO $pdo, array $link, array $options = []): array
     };
 
     if ($id <= 0 || $url === '') {
-        return ['ok' => false, 'file' => '', 'source' => '', 'status' => 'fail', 'message' => '链接不存在或 URL 为空'];
+        return ['ok' => false, 'file' => '', 'source' => '', 'status' => 'fail', 'message' => t('链接不存在或 URL 为空')];
     }
 
     // ① 本地缓存命中（未强制重抓且状态正常）
     if (empty($options['force'])) {
         $cached = icon_cached_file($link);
         if ($cached !== '') {
-            return ['ok' => true, 'file' => $cached, 'source' => (string)($link['icon_source'] ?? ''), 'status' => 'cached', 'message' => '命中本地缓存，无需重抓'];
+            return ['ok' => true, 'file' => $cached, 'source' => (string)($link['icon_source'] ?? ''), 'status' => 'cached', 'message' => t('命中本地缓存，无需重抓')];
         }
     }
 
@@ -745,7 +745,7 @@ function link_icon_hue(array $link): int
 function icon_source_label(string $source): string
 {
     $map = [
-        'site'       => '源站',
+        'site'       => t('源站'),
         'google'     => 'Google',
         'duckduckgo' => 'DuckDuckGo',
         'favicon.im' => 'favicon.im',

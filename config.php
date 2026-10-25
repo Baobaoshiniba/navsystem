@@ -11,18 +11,20 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/lib/i18n.php';
+
 // 站点基本配置（亦是站点设置默认文案；前台实际展示文案可在后台「站点设置」中覆盖）
 $config = [
     // 公司名称（页面标题 / 主视觉标题等）
-    'site_name'          => '星辰科技有限公司',
+    'site_name'          => '小组项目导航',
     // Logo 显示文字（顶栏品牌区，可与公司名称不同）
-    'logo_text'          => '星辰科技',
+    'logo_text'          => '小组工作台',
     // 副标题 / 欢迎语
-    'site_slogan'        => '一站式企业资源导航 · 高效连接每一天',
+    'site_slogan'        => '协作、开发与学习资源，一处直达',
     // 聚合搜索栏输入框提示语（{engine} 会替换为当前选中的引擎名）
     'search_placeholder' => '在 {engine} 中搜索…',
     // 页脚版权 / 公司信息
-    'site_footer'        => '星辰科技有限公司 © 2026 版权所有 · 让信息流动更简单',
+    'site_footer'        => '小组项目导航 © 2026 · 一起协作，高效完成',
     // 首页每类链接点击多少次后进入“热门”推荐区排序展示
     'hot_threshold'      => 0,
 ];
@@ -30,7 +32,7 @@ $config = [
 // 管理后台登录配置
 $admin_config = [
     'username' => 'admin',
-    'password' => 'CHANGE_ME',   // 部署后请立即修改为强密码（公开仓库已脱敏）
+    'password' => 'demo12345',   // Coursework demo account; change before public deployment
     'session_name' => 'company_nav_admin_session',
 ];
 
@@ -121,6 +123,16 @@ function init_database(PDO $pdo): void
 
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_links_category ON links(category_id);');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_links_active   ON links(is_active);');
+
+    // Additive bilingual fields; keep original content and encrypted data untouched.
+    foreach (['categories' => ['name_en'], 'links' => ['title_en', 'description_en']] as $table => $columns) {
+        $existing = array_column($pdo->query('PRAGMA table_info(' . $table . ')')->fetchAll(), 'name');
+        foreach ($columns as $column) {
+            if (!in_array($column, $existing, true)) {
+                $pdo->exec('ALTER TABLE ' . $table . ' ADD COLUMN ' . $column . " TEXT NOT NULL DEFAULT ''");
+            }
+        }
+    }
 
     // 链接图标本地缓存字段：幂等 ALTER，兼容已有旧库（老库缺列时自动补齐，已有数据不受影响）
     //  icon_file       本地缓存文件名（assets/icons/ 下，URL 哈希命名，避免撞名）
@@ -229,55 +241,19 @@ function init_database(PDO $pdo): void
  */
 function seed_demo_data(PDO $pdo): void
 {
-    // 演示数据采用「公司业务导航 / 常用工作台」视角：电商平台仅保留跨境店铺主力入口，避免堆砌
-    $categories = [
-        ['常用工作台',   '🧰', 1],
-        ['采购与供应链', '📦', 2],
-        ['跨境店铺',     '🛍️', 3],
-        ['物流查询',     '🚚', 4],
-        ['内部系统',     '🔐', 5],
-    ];
-
-    $insertCat = $pdo->prepare('INSERT INTO categories (name, icon, sort_order) VALUES (?, ?, ?)');
-    $catIds = [];
-    foreach ($categories as $cat) {
-        $insertCat->execute($cat);
-        $catIds[] = (int)$pdo->lastInsertId();
-    }
-
-    $links = [
-        // 常用工作台
-        [$catIds[0], '企业微信',       'https://work.weixin.qq.com',        '内部沟通、审批与客户联系',                          '💬', 1, 306],
-        [$catIds[0], '腾讯文档',       'https://docs.qq.com',               '在线协作文档 / 表格 / 幻灯片',                      '📄', 2, 189],
-        [$catIds[0], '飞书',           'https://www.feishu.cn',             '一站式协作办公平台',                                '✈️', 3, 152],
-        [$catIds[0], '语雀',           'https://www.yuque.com',             '团队知识库与文档沉淀',                              '📓', 4, 71],
-        [$catIds[0], '百度网盘',       'https://pan.baidu.com',             '公司资料云端存储与共享',                            '☁️', 5, 96],
-        // 采购与供应链
-        [$catIds[1], '1688.com',       'https://www.1688.com',              '国内货源采购批发主阵地（含 1688 跨境专供）',        '🏭', 1, 168],
-        [$catIds[1], '阿里巴巴国际站', 'https://www.alibaba.com',           '外贸批发与海外供应商对接',                          '🌐', 2, 87],
-        [$catIds[1], '中国制造网',     'https://www.made-in-china.com',     '内贸外贸工厂货源搜索',                              '⚙️', 3, 42],
-        // 跨境店铺
-        [$catIds[2], 'Shopee 卖家中心', 'https://seller.shopee.cn/',        '虾皮跨境卖家后台：商品 / 订单 / 营销',              '🛒', 1, 126],
-        [$catIds[2], '速卖通卖家中心', 'https://sell.aliexpress.com/',      'AliExpress 卖家后台：商品发布与订单履约',           '🚀', 2, 104],
-        [$catIds[2], 'Ozon 卖家后台',  'https://seller.ozon.ru/',           '俄罗斯 Ozon 平台卖家管理中心',                      '🌍', 3, 58],
-        [$catIds[2], 'Lazada 卖家中心', 'https://sellercenter.lazada.com/', '东南亚 Lazada 卖家后台',                            '🦁', 4, 47],
-        // 物流查询
-        [$catIds[3], '17TRACK',        'https://www.17track.net/',          '全球 1700+ 物流商轨迹一站式查询',                   '📬', 1, 93],
-        [$catIds[3], '快递100',        'https://www.kuaidi100.com/',         '国内主流快递单号聚合查询',                          '📮', 2, 66],
-        [$catIds[3], '顺丰速运',       'https://www.sf-express.com/',        '顺丰寄件与物流跟踪',                                '🛫', 3, 40],
-        [$catIds[3], '中国邮政给据邮件','https://yjcx.chinapost.com.cn/',    '邮政挂号 / 包裹 / EMS 给据邮件查询',                '🏣', 4, 25],
-        // 内部系统（演示地址，请在后台修改为真实内网地址）
-        [$catIds[4], 'OA 办公系统',    'http://oa.example.local',            '审批、考勤、公告（演示地址，请替换）',              '🗂️', 1, 33],
-        [$catIds[4], '公司邮箱',       'http://mail.example.com',            '企业邮箱 Web 入口（演示地址，请替换）',             '📧', 2, 29],
-        [$catIds[4], '内部 Wiki',      'http://wiki.example.local',          '团队知识库（演示地址，请替换）',                    '📚', 3, 18],
-    ];
-
+    $groups = json_decode(file_get_contents(__DIR__ . '/data/demo.json'), true, 512, JSON_THROW_ON_ERROR);
+    $insertCat = $pdo->prepare('INSERT INTO categories (name, name_en, icon, sort_order) VALUES (?, ?, ?, ?)');
     $insertLink = $pdo->prepare(
-        'INSERT INTO links (category_id, title, url, description, icon, sort_order, is_active, click_count)
-         VALUES (?, ?, ?, ?, ?, ?, 1, ?)'
+        'INSERT INTO links (category_id, title, title_en, url, description, description_en, icon, sort_order, is_active, click_count)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0)'
     );
-    foreach ($links as $link) {
-        $insertLink->execute($link);
+    foreach ($groups as $position => $group) {
+        $insertCat->execute([$group['name'], $group['name_en'], $group['icon'], $position + 1]);
+        $categoryId = (int)$pdo->lastInsertId();
+        foreach ($group['links'] as $rank => $link) {
+            $insertLink->execute([$categoryId, $link['title'], $link['title_en'], $link['url'],
+                $link['description'], $link['description_en'], $link['icon'], $rank + 1]);
+        }
     }
 }
 
@@ -291,18 +267,24 @@ function site_settings_defaults(): array
 {
     global $config;
     return [
-        'site_name'          => $config['site_name']          ?? '星辰科技有限公司',
-        'logo_text'          => $config['logo_text']          ?? '星辰科技',
-        'site_slogan'        => $config['site_slogan']        ?? '一站式企业资源导航 · 高效连接每一天',
+        'site_name'          => $config['site_name']          ?? '小组项目导航',
+        'logo_text'          => $config['logo_text']          ?? '小组工作台',
+        'site_slogan'        => $config['site_slogan']        ?? '协作、开发与学习资源，一处直达',
         'search_placeholder' => $config['search_placeholder'] ?? '在 {engine} 中搜索…',
-        'footer_text'        => $config['site_footer']        ?? '星辰科技有限公司 © 2026 版权所有 · 让信息流动更简单',
+        'footer_text'        => $config['site_footer']        ?? '小组项目导航 © 2026 · 一起协作，高效完成',
+        'site_name_en'          => 'Team Resource Hub',
+        'logo_text_en'          => 'Team Workspace',
+        'site_slogan_en'        => 'Your shared space for collaboration, development and learning',
+        'search_placeholder_en' => 'Search with {engine}…',
+        'footer_text_en'        => 'Team Resource Hub © 2026 · Work better together',
+
     ];
 }
 
 /**
  * 读取站点设置（优先 settings 表；空值/缺省回退默认文案）
  */
-function setting(string $key): string
+function raw_setting(string $key, bool $useDefault = true): string
 {
     static $cache = null;
     if ($cache === null) {
@@ -320,7 +302,17 @@ function setting(string $key): string
         return $cache[$key];
     }
     $defaults = site_settings_defaults();
-    return $defaults[$key] ?? '';
+    return $useDefault ? ($defaults[$key] ?? '') : '';
+}
+
+/** Localize display settings only; editing always reads raw values. */
+function setting(string $key): string
+{
+    if (locale() === 'en' && in_array($key, ['site_name', 'logo_text', 'site_slogan', 'search_placeholder', 'footer_text'], true)) {
+        $english = raw_setting($key . '_en', false);
+        if (trim($english) !== '') return $english;
+    }
+    return raw_setting($key);
 }
 
 /**
@@ -364,11 +356,9 @@ function register_enabled(): bool
 function default_search_engines(): array
 {
     return [
-        ['name' => '必应',   'url' => 'https://www.bing.com/search?q={q}'],
-        ['name' => '百度',   'url' => 'https://www.baidu.com/s?wd={q}'],
         ['name' => 'Google', 'url' => 'https://www.google.com/search?q={q}'],
-        ['name' => '知乎',   'url' => 'https://www.zhihu.com/search?type=content&q={q}'],
-        ['name' => 'B站',    'url' => 'https://search.bilibili.com/all?keyword={q}'],
+        ['name' => 'Bing', 'url' => 'https://www.bing.com/search?q={q}'],
+        ['name' => 'Google Scholar', 'url' => 'https://scholar.google.com/scholar?q={q}'],
         ['name' => 'GitHub', 'url' => 'https://github.com/search?q={q}'],
     ];
 }
@@ -462,9 +452,9 @@ function search_input_placeholder(string $engineName): string
     // 兼容旧版历史值：旧配置里的该文案是站内搜索提示、不含 {engine} 占位，
     // 这类值直接回退内置模板，确保提示语始终随当前引擎变化（后台提示已说明 {engine} 用法）。
     if ($tpl === '' || strpos($tpl, '{engine}') === false) {
-        $tpl = '在 {engine} 中搜索…';
+        $tpl = locale() === 'en' ? 'Search with {engine}…' : '在 {engine} 中搜索…';
     }
-    return str_replace('{engine}', $engineName, $tpl);
+    return str_replace('{engine}', t($engineName), $tpl);
 }
 
 /**
@@ -725,7 +715,7 @@ function captcha_png(): void
 
     if (!function_exists('imagecreatetruecolor')) {
         header('Content-Type: text/plain; charset=utf-8');
-        echo 'GD 扩展未启用，无法生成验证码。';
+        echo ('GD ' . t('扩展未启用，无法生成验证码。'));
         return;
     }
 
@@ -804,7 +794,7 @@ function admin_save_account(string $username, string $password): void
 
     $username = trim($username);
     if ($username === '') {
-        throw new RuntimeException('管理员用户名不能为空');
+        throw new RuntimeException(t('管理员用户名不能为空'));
     }
 
     $pdo      = db();
@@ -856,10 +846,10 @@ function admin_create_user(string $username, string $password): void
 {
     $username = trim($username);
     if ($username === '') {
-        throw new RuntimeException('用户名不能为空。');
+        throw new RuntimeException(t('用户名不能为空。'));
     }
     if (admin_find_user($username) !== null) {
-        throw new RuntimeException('该用户名已被注册，请换一个试试。');
+        throw new RuntimeException(t('该用户名已被注册，请换一个试试。'));
     }
 
     try {
@@ -870,7 +860,7 @@ function admin_create_user(string $username, string $password): void
         $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT)]);
     } catch (PDOException $e) {
         // UNIQUE 约束兜底（并发注册同一用户名）
-        throw new RuntimeException('该用户名已被注册，请换一个试试。');
+        throw new RuntimeException(t('该用户名已被注册，请换一个试试。'));
     }
 }
 
@@ -955,11 +945,11 @@ function page_header(string $title): void
     $siteName = e(setting('site_name'));
     $theme    = theme_preference();
     echo '<!DOCTYPE html>
-<html lang="zh-CN" data-theme="' . $theme . '">
+<html lang="' . e(locale()) . '" data-theme="' . $theme . '">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>' . e($title) . ' · ' . $siteName . '</title>
+<title>' . e(t($title)) . ' · ' . $siteName . '</title>
 ' . favicon_html('assets/') . '
 <style>
 html:not([data-loaded]) { background:#faf1dd; }
@@ -974,10 +964,10 @@ html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
  */
 function theme_toggle_html(string $extraClass = ''): string
 {
-    return '<button type="button" class="theme-toggle ' . $extraClass . '" id="themeToggle" aria-label="切换深浅色主题">
+    return language_switch_html() . '<button type="button" class="theme-toggle ' . $extraClass . ('" id="themeToggle" aria-label="' . t('切换深浅色主题') . '">
 <svg class="tt-icon tt-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
 <svg class="tt-icon tt-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-</button>';
+</button>');
 }
 
 /**
@@ -1056,7 +1046,7 @@ function auth_brand_html(string $title, string $subtitle, array $points = [], st
  */
 function page_footer(string $base = ''): void
 {
-    echo '<script src="' . $base . 'assets/js/theme.js"></script>
+    echo '<script src="' . $base . 'assets/js/i18n.js"></script><script src="' . $base . 'assets/js/theme.js"></script>
 </body>
 </html>';
 }

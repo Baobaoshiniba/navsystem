@@ -1,0 +1,126 @@
+[
+  {
+    "name": "小组协作",
+    "name_en": "Team collaboration",
+    "icon": "🤝",
+    "links": [
+      {
+        "title": "腾讯文档",
+        "title_en": "Tencent Docs",
+        "url": "https://docs.qq.com/",
+        "description": "共同整理会议记录、任务分工与作业草稿。",
+        "description_en": "Write meeting notes, assign tasks and draft reports together.",
+        "icon": "📄"
+      },
+      {
+        "title": "Google Drive",
+        "title_en": "Google Drive",
+        "url": "https://drive.google.com/",
+        "description": "集中存放报告、演示文稿与小组共享文件。",
+        "description_en": "Keep reports, slides and shared project files in one place.",
+        "icon": "☁️"
+      },
+      {
+        "title": "Trello",
+        "title_en": "Trello",
+        "url": "https://trello.com/",
+        "description": "用任务看板跟踪待办事项与小组进度。",
+        "description_en": "Track tasks and team progress with a shared board.",
+        "icon": "📋"
+      }
+    ]
+  },
+  {
+    "name": "开发工具",
+    "name_en": "Development tools",
+    "icon": "💻",
+    "links": [
+      {
+        "title": "GitHub",
+        "title_en": "GitHub",
+        "url": "https://github.com/",
+        "description": "管理项目代码、版本记录与问题反馈。",
+        "description_en": "Manage source code, version history and project issues.",
+        "icon": "🐙"
+      },
+      {
+        "title": "PHP 手册",
+        "title_en": "PHP Manual",
+        "url": "https://www.php.net/manual/",
+        "description": "查阅 PHP 语法、函数与数据库使用说明。",
+        "description_en": "Look up PHP syntax, functions and database guides.",
+        "icon": "🐘"
+      },
+      {
+        "title": "MDN Web 文档",
+        "title_en": "MDN Web Docs",
+        "url": "https://developer.mozilla.org/",
+        "description": "查询 HTML、CSS 与 JavaScript 开发文档。",
+        "description_en": "Find documentation for HTML, CSS and JavaScript.",
+        "icon": "🌐"
+      }
+    ]
+  },
+  {
+    "name": "测试与质量",
+    "name_en": "Testing and quality",
+    "icon": "🧪",
+    "links": [
+      {
+        "title": "Postman",
+        "title_en": "Postman",
+        "url": "https://www.postman.com/",
+        "description": "组织接口请求，检查响应与测试结果。",
+        "description_en": "Organize API requests and inspect responses and test results.",
+        "icon": "📮"
+      },
+      {
+        "title": "HTML 验证器",
+        "title_en": "HTML Validator",
+        "url": "https://validator.w3.org/",
+        "description": "检查网页标记，定位 HTML 结构问题。",
+        "description_en": "Check page markup and identify HTML structure issues.",
+        "icon": "✅"
+      },
+      {
+        "title": "PageSpeed Insights",
+        "title_en": "PageSpeed Insights",
+        "url": "https://pagespeed.web.dev/",
+        "description": "查看页面性能分析与体验改进建议。",
+        "description_en": "Review page performance and improvement suggestions.",
+        "icon": "⚡"
+      }
+    ]
+  },
+  {
+    "name": "学习与报告",
+    "name_en": "Learning and reports",
+    "icon": "📚",
+    "links": [
+      {
+        "title": "Google Scholar",
+        "title_en": "Google Scholar",
+        "url": "https://scholar.google.com/",
+        "description": "查找课程报告相关的论文与学术资料。",
+        "description_en": "Find papers and academic sources for coursework reports.",
+        "icon": "🎓"
+      },
+      {
+        "title": "Zotero",
+        "title_en": "Zotero",
+        "url": "https://www.zotero.org/",
+        "description": "整理参考文献，协作管理报告引用资料。",
+        "description_en": "Organize references and manage sources for your report.",
+        "icon": "📖"
+      },
+      {
+        "title": "diagrams.net",
+        "title_en": "diagrams.net",
+        "url": "https://app.diagrams.net/",
+        "description": "绘制系统架构图、流程图与数据库关系图。",
+        "description_en": "Draw system architecture, workflow and database diagrams.",
+        "icon": "🗺️"
+      }
+    ]
+  }
+]

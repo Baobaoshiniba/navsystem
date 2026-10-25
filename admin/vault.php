@@ -46,53 +46,53 @@ if (is_post()) {
         /* ---------------- 首次设置主密码 ---------------- */
         case 'setup_master':
             if (vault_master_is_set()) {
-                flash('主密码已设置，请直接输入主密码解锁。', 'error');
+                flash(t('主密码已设置，请直接输入主密码解锁。'), 'error');
                 redirect('vault.php');
             }
             $p1 = (string)($_POST['master_password'] ?? '');
             $p2 = (string)($_POST['master_password2'] ?? '');
             $errs = [];
             if (mb_strlen($p1) < VAULT_MIN_MASTER_LEN) {
-                $errs[] = '主密码至少 ' . VAULT_MIN_MASTER_LEN . ' 位。';
+                $errs[] = (t('主密码至少') . ' ') . VAULT_MIN_MASTER_LEN . (' ' . t('位。'));
             }
             if (mb_strlen($p1) > 200) {
-                $errs[] = '主密码过长（上限 200 位）。';
+                $errs[] = t('主密码过长（上限 200 位）。');
             }
             if (!hash_equals($p1, $p2)) {
-                $errs[] = '两次输入的主密码不一致。';
+                $errs[] = t('两次输入的主密码不一致。');
             }
             if ($errs) {
                 flash(implode(' ', $errs), 'error');
                 redirect('vault.php');
             }
             vault_setup_master($p1);
-            flash('主密码设置成功，保险箱已解锁。请务必牢记主密码：忘记后只能重置保险箱，全部条目将无法恢复。');
+            flash(t('主密码设置成功，保险箱已解锁。请务必牢记主密码：忘记后只能重置保险箱，全部条目将无法恢复。'));
             redirect('vault.php');
             break;
 
         /* ---------------- 解锁 ---------------- */
         case 'unlock':
             if (!vault_master_is_set()) {
-                flash('尚未设置主密码，请先设置。', 'error');
+                flash(t('尚未设置主密码，请先设置。'), 'error');
                 redirect('vault.php');
             }
             $master = (string)($_POST['master_password'] ?? '');
             if ($master === '') {
-                flash('请输入主密码。', 'error');
+                flash(t('请输入主密码。'), 'error');
                 redirect('vault.php');
             }
             if (!vault_unlock($master)) {
-                flash('主密码不正确，请重新输入。', 'error');
+                flash(t('主密码不正确，请重新输入。'), 'error');
                 redirect('vault.php');
             }
-            flash('保险箱已解锁，' . (VAULT_IDLE_TIMEOUT / 60) . ' 分钟无操作将自动锁定。');
+            flash(t('保险箱已解锁，') . (VAULT_IDLE_TIMEOUT / 60) . (' ' . t('分钟无操作将自动锁定。')));
             redirect('vault.php');
             break;
 
         /* ---------------- 立即锁定 ---------------- */
         case 'lock':
             vault_lock();
-            flash('保险箱已锁定，需重新输入主密码解锁。');
+            flash(t('保险箱已锁定，需重新输入主密码解锁。'));
             redirect('vault.php');
             break;
 
@@ -102,10 +102,10 @@ if (is_post()) {
             $text = trim((string)($_POST['confirm_text'] ?? ''));
             $errs = [];
             if ($ack !== '1') {
-                $errs[] = '请先勾选「我已了解该操作不可恢复」。';
+                $errs[] = t('请先勾选「我已了解该操作不可恢复」。');
             }
             if ($text !== VAULT_RESET_PHRASE) {
-                $errs[] = '请输入「' . VAULT_RESET_PHRASE . '」以确认。';
+                $errs[] = t('请输入「') . VAULT_RESET_PHRASE . ('」' . t('以确认。'));
             }
             if ($errs) {
                 flash(implode(' ', $errs), 'error');
@@ -113,14 +113,14 @@ if (is_post()) {
             }
             $cleared = vault_stats()['total'];
             vault_reset_all();
-            flash('保险箱已重置：已清空 ' . $cleared . ' 条记录，主密码与加密密钥一并清除，原数据不可恢复。请重新设置主密码。');
+            flash((t('保险箱已重置：已清空') . ' ') . $cleared . (' ' . t('条记录，主密码与加密密钥一并清除，原数据不可恢复。请重新设置主密码。')));
             redirect('vault.php');
             break;
 
         /* ---------------- 新增 / 编辑条目（需解锁） ---------------- */
         case 'save':
             if (!vault_is_unlocked()) {
-                flash('保险箱已锁定（' . (VAULT_IDLE_TIMEOUT / 60) . ' 分钟无操作），请重新输入主密码后重试。', 'error');
+                flash(t('保险箱已锁定（') . (VAULT_IDLE_TIMEOUT / 60) . (' ' . t('分钟无操作），请重新输入主密码后重试。')), 'error');
                 redirect($retUrl);
             }
             $key = vault_session_key();
@@ -135,27 +135,27 @@ if (is_post()) {
 
             $errs = [];
             if ($title === '') {
-                $errs[] = '标题不能为空。';
+                $errs[] = t('标题不能为空。');
             } elseif (mb_strlen($title) > 80) {
-                $errs[] = '标题过长（上限 80 字）。';
+                $errs[] = t('标题过长（上限 80 字）。');
             }
             $safeUrl = vault_safe_url($urlRaw);
             if ($urlRaw === '') {
-                $errs[] = '网址不能为空。';
+                $errs[] = t('网址不能为空。');
             } elseif ($safeUrl === '') {
-                $errs[] = '网址格式不正确（仅支持 http / https）。';
+                $errs[] = t('网址格式不正确（仅支持 http / https）。');
             }
             if (mb_strlen($username) > 120) {
-                $errs[] = '账号过长（上限 120 字）。';
+                $errs[] = t('账号过长（上限 120 字）。');
             }
             if (mb_strlen($password) > 200) {
-                $errs[] = '密码过长（上限 200 位）。';
+                $errs[] = t('密码过长（上限 200 位）。');
             }
             if (mb_strlen($category) > 40) {
-                $errs[] = '分类过长（上限 40 字）。';
+                $errs[] = t('分类过长（上限 40 字）。');
             }
             if (mb_strlen($notes) > 500) {
-                $errs[] = '备注过长（上限 500 字）。';
+                $errs[] = t('备注过长（上限 500 字）。');
             }
             if ($errs) {
                 flash(implode(' ', $errs), 'error');
@@ -173,13 +173,13 @@ if (is_post()) {
 
             if ($id > 0) {
                 if (!vault_update($id, $data, $key)) {
-                    flash('要编辑的条目不存在，可能已被删除。', 'error');
+                    flash(t('要编辑的条目不存在，可能已被删除。'), 'error');
                 } else {
-                    flash('条目「' . $title . '」已更新。');
+                    flash(t('条目「') . $title . ('」' . t('已更新。')));
                 }
             } else {
                 vault_create($data, $key);
-                flash('条目「' . $title . '」已加入保险箱。');
+                flash(t('条目「') . $title . ('」' . t('已加入保险箱。')));
             }
             redirect(vault_list_url(post('ret_q'), post('ret_cat'), max(1, (int)post('ret_page', '1'))));
             break;
@@ -187,14 +187,14 @@ if (is_post()) {
         /* ---------------- 删除条目（需解锁） ---------------- */
         case 'delete':
             if (!vault_is_unlocked()) {
-                flash('保险箱已锁定（' . (VAULT_IDLE_TIMEOUT / 60) . ' 分钟无操作），请重新输入主密码后重试。', 'error');
+                flash(t('保险箱已锁定（') . (VAULT_IDLE_TIMEOUT / 60) . (' ' . t('分钟无操作），请重新输入主密码后重试。')), 'error');
                 redirect($retUrl);
             }
             $id = (int)post('id', '0');
             if ($id > 0 && vault_delete($id)) {
-                flash('条目已删除。');
+                flash(t('条目已删除。'));
             } else {
-                flash('要删除的条目不存在。', 'error');
+                flash(t('要删除的条目不存在。'), 'error');
             }
             redirect($retUrl);
             break;
@@ -232,25 +232,25 @@ if ($unlocked) {
     }
 }
 
-admin_header('密码保险箱', 'vault');
+admin_header(t('密码保险箱'), 'vault');
 ?>
 <div class="page-title-row">
-    <h1 class="page-title">密码保险箱</h1>
+    <h1 class="page-title"><?= e(t('密码保险箱')) ?></h1>
     <?php if ($unlocked): ?>
-        <p class="page-sub">共 <?= $stats['total'] ?> 条记录 · <?= $stats['categories'] ?> 个分类；密码以 AES-256-GCM 加密存储，仅在本机解锁后可读。</p>
+        <p class="page-sub"><?= e(t('共')) ?> <?= $stats['total'] ?> <?= e(t('条记录 ·')) ?> <?= $stats['categories'] ?> <?= e(t('个分类；密码以 AES-256-GCM 加密存储，仅在本机解锁后可读。')) ?></p>
     <?php else: ?>
-        <p class="page-sub">存放网页链接与对应账号密码：主密码解锁 + AES-256-GCM 加密入库，密钥仅存于当前会话。</p>
+        <p class="page-sub"><?= e(t('存放网页链接与对应账号密码：主密码解锁 + AES-256-GCM 加密入库，密钥仅存于当前会话。')) ?></p>
     <?php endif; ?>
 
     <?php if ($unlocked): ?>
         <div class="vault-session">
-            <span class="vault-timer" id="vaultTimer" data-remaining="<?= vault_remaining_seconds() ?>" data-timeout="<?= VAULT_IDLE_TIMEOUT ?>" role="status">🔓 已解锁</span>
+            <span class="vault-timer" id="vaultTimer" data-remaining="<?= vault_remaining_seconds() ?>" data-timeout="<?= VAULT_IDLE_TIMEOUT ?>" role="status">🔓 <?= e(t('已解锁')) ?></span>
             <form method="post" action="vault.php" class="inline-form">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="lock">
-                <button type="submit" class="btn-ghost btn-sm">立即锁定</button>
+                <button type="submit" class="btn-ghost btn-sm"><?= e(t('立即锁定')) ?></button>
             </form>
-            <button type="button" class="btn-ghost btn-sm" id="vaultResetOpen">重置保险箱…</button>
+            <button type="button" class="btn-ghost btn-sm" id="vaultResetOpen"><?= e(t('重置保险箱…')) ?></button>
         </div>
     <?php endif; ?>
 </div>
@@ -259,12 +259,12 @@ admin_header('密码保险箱', 'vault');
 
     <section class="panel glass vault-gate">
         <div class="vault-gate-ico" aria-hidden="true">🔐</div>
-        <h2 class="vault-gate-title">首次使用：设置主密码</h2>
-        <p class="vault-gate-desc">主密码是保险箱唯一的钥匙，用于派生加密密钥。它本身只以 Argon2id 校验哈希保存，不存明文，也不写入任何文件。</p>
+        <h2 class="vault-gate-title"><?= e(t('首次使用：设置主密码')) ?></h2>
+        <p class="vault-gate-desc"><?= e(t('主密码是保险箱唯一的钥匙，用于派生加密密钥。它本身只以 Argon2id 校验哈希保存，不存明文，也不写入任何文件。')) ?></p>
         <ul class="vault-gate-points">
-            <li>至少 <?= VAULT_MIN_MASTER_LEN ?> 位，建议 12 位以上并混合大小写、数字与符号；</li>
-            <li>加密密钥由主密码派生后仅保存在当前会话，<?= (int)(VAULT_IDLE_TIMEOUT / 60) ?> 分钟无操作自动锁定；</li>
-            <li><span class="danger-text">忘记主密码无法找回</span>：数据严格加密，只能「重置保险箱」清空全部条目。</li>
+            <li><?= e(t('至少')) ?> <?= VAULT_MIN_MASTER_LEN ?> <?= e(t('位，建议 12 位以上并混合大小写、数字与符号；')) ?></li>
+            <li><?= e(t('加密密钥由主密码派生后仅保存在当前会话，')) ?><?= (int)(VAULT_IDLE_TIMEOUT / 60) ?> <?= e(t('分钟无操作自动锁定；')) ?></li>
+            <li><span class="danger-text"><?= e(t('忘记主密码无法找回')) ?></span>：<?= e(t('数据严格加密，只能「重置保险箱」清空全部条目。')) ?></li>
         </ul>
 
         <form method="post" action="vault.php" class="form-stack vault-gate-form" id="vaultSetupForm" autocomplete="off">
@@ -272,32 +272,32 @@ admin_header('密码保险箱', 'vault');
             <input type="hidden" name="action" value="setup_master">
 
             <div class="form-field">
-                <label class="field-label" for="vaultMaster1">主密码<span class="req">*</span></label>
+                <label class="field-label" for="vaultMaster1"><?= e(t('主密码')) ?><span class="req">*</span></label>
                 <div class="vault-input-group">
                     <input class="form-input" type="password" id="vaultMaster1" name="master_password"
                            minlength="<?= VAULT_MIN_MASTER_LEN ?>" maxlength="200" required
-                           autocomplete="new-password" placeholder="至少 <?= VAULT_MIN_MASTER_LEN ?> 位">
-                    <button type="button" class="mini-btn" data-vault-toggle="vaultMaster1">👁 显示</button>
+                           autocomplete="new-password" placeholder="<?= e(t('至少')) ?> <?= VAULT_MIN_MASTER_LEN ?> <?= e(t('位')) ?>">
+                    <button type="button" class="mini-btn" data-vault-toggle="vaultMaster1">👁 <?= e(t('显示')) ?></button>
                 </div>
                 <div class="vault-strength" data-vault-strength="vaultMaster1" data-level="0">
                     <div class="vs-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-                    <span class="vs-text">强度：—</span>
+                    <span class="vs-text"><?= e(t('强度：—')) ?></span>
                 </div>
             </div>
 
             <div class="form-field">
-                <label class="field-label" for="vaultMaster2">确认主密码<span class="req">*</span></label>
+                <label class="field-label" for="vaultMaster2"><?= e(t('确认主密码')) ?><span class="req">*</span></label>
                 <div class="vault-input-group">
                     <input class="form-input" type="password" id="vaultMaster2" name="master_password2"
                            minlength="<?= VAULT_MIN_MASTER_LEN ?>" maxlength="200" required
-                           autocomplete="new-password" placeholder="再次输入主密码">
-                    <button type="button" class="mini-btn" data-vault-toggle="vaultMaster2">👁 显示</button>
+                           autocomplete="new-password" placeholder="<?= e(t('再次输入主密码')) ?>">
+                    <button type="button" class="mini-btn" data-vault-toggle="vaultMaster2">👁 <?= e(t('显示')) ?></button>
                 </div>
-                <p class="field-hint">两次输入需完全一致；主密码不会以任何形式落盘。</p>
+                <p class="field-hint"><?= e(t('两次输入需完全一致；主密码不会以任何形式落盘。')) ?></p>
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn-primary">设置主密码并进入保险箱</button>
+                <button type="submit" class="btn-primary"><?= e(t('设置主密码并进入保险箱')) ?></button>
             </div>
         </form>
     </section>
@@ -306,45 +306,45 @@ admin_header('密码保险箱', 'vault');
 
     <section class="panel glass vault-gate">
         <div class="vault-gate-ico" aria-hidden="true">🔒</div>
-        <h2 class="vault-gate-title">保险箱已锁定</h2>
-        <p class="vault-gate-desc">请输入主密码解锁。解锁后 <?= (int)(VAULT_IDLE_TIMEOUT / 60) ?> 分钟无操作会自动锁定，也可随时点击「立即锁定」。</p>
+        <h2 class="vault-gate-title"><?= e(t('保险箱已锁定')) ?></h2>
+        <p class="vault-gate-desc"><?= e(t('请输入主密码解锁。解锁后')) ?> <?= (int)(VAULT_IDLE_TIMEOUT / 60) ?> <?= e(t('分钟无操作会自动锁定，也可随时点击「立即锁定」。')) ?></p>
 
         <form method="post" action="vault.php" class="form-stack vault-gate-form" autocomplete="off">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="unlock">
 
             <div class="form-field">
-                <label class="field-label" for="vaultMasterUnlock">主密码<span class="req">*</span></label>
+                <label class="field-label" for="vaultMasterUnlock"><?= e(t('主密码')) ?><span class="req">*</span></label>
                 <div class="vault-input-group">
                     <input class="form-input" type="password" id="vaultMasterUnlock" name="master_password"
-                           maxlength="200" required autocomplete="current-password" placeholder="输入主密码">
-                    <button type="button" class="mini-btn" data-vault-toggle="vaultMasterUnlock">👁 显示</button>
+                           maxlength="200" required autocomplete="current-password" placeholder="<?= e(t('输入主密码')) ?>">
+                    <button type="button" class="mini-btn" data-vault-toggle="vaultMasterUnlock">👁 <?= e(t('显示')) ?></button>
                 </div>
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn-primary">解锁保险箱</button>
+                <button type="submit" class="btn-primary"><?= e(t('解锁保险箱')) ?></button>
             </div>
         </form>
 
         <div class="vault-gate-foot">
-            <p class="field-hint">忘记主密码？数据无法解密找回，只能重置保险箱（清空全部条目，不可恢复）。</p>
-            <button type="button" class="btn-ghost btn-sm" id="vaultResetOpen">重置保险箱…</button>
+            <p class="field-hint"><?= e(t('忘记主密码？数据无法解密找回，只能重置保险箱（清空全部条目，不可恢复）。')) ?></p>
+            <button type="button" class="btn-ghost btn-sm" id="vaultResetOpen"><?= e(t('重置保险箱…')) ?></button>
         </div>
     </section>
 
 <?php else: /* ============ 三、已解锁主界面 ============ */ ?>
 
     <div class="mini-stats">
-        <div class="mini-stat"><span class="ms-ico">🗂️</span><div><div class="ms-num"><?= $stats['total'] ?></div><div class="ms-label">保险箱条目</div></div></div>
-        <div class="mini-stat"><span class="ms-ico">👤</span><div><div class="ms-num"><?= $stats['with_login'] ?></div><div class="ms-label">含账号条目</div></div></div>
-        <div class="mini-stat"><span class="ms-ico">🏷️</span><div><div class="ms-num"><?= $stats['categories'] ?></div><div class="ms-label">已用分类</div></div></div>
+        <div class="mini-stat"><span class="ms-ico">🗂️</span><div><div class="ms-num"><?= $stats['total'] ?></div><div class="ms-label"><?= e(t('保险箱条目')) ?></div></div></div>
+        <div class="mini-stat"><span class="ms-ico">👤</span><div><div class="ms-num"><?= $stats['with_login'] ?></div><div class="ms-label"><?= e(t('含账号条目')) ?></div></div></div>
+        <div class="mini-stat"><span class="ms-ico">🏷️</span><div><div class="ms-num"><?= $stats['categories'] ?></div><div class="ms-label"><?= e(t('已用分类')) ?></div></div></div>
     </div>
 
     <div class="two-col two-col-form vault-layout">
         <!-- 左栏：新增 / 编辑表单 -->
         <section class="panel glass">
-            <h2 class="panel-title"><?= $editing ? '✎ 编辑条目' : '＋ 新增条目' ?></h2>
+            <h2 class="panel-title"><?= $editing ? ('✎ ' . t('编辑条目')) : ('＋ ' . t('新增条目')) ?></h2>
 
             <form method="post" action="vault.php" class="form-stack" id="vaultItemForm" autocomplete="off"
                   data-unlocked="<?= $unlocked ? '1' : '0' ?>">
@@ -356,59 +356,59 @@ admin_header('密码保险箱', 'vault');
                 <input type="hidden" name="ret_page" value="<?= (int)$list['page'] ?>">
 
                 <div class="form-field">
-                    <label class="field-label" for="v-title">标题<span class="req">*</span></label>
+                    <label class="field-label" for="v-title"><?= e(t('标题')) ?><span class="req">*</span></label>
                     <input class="form-input" type="text" id="v-title" name="title" maxlength="80" required
-                           placeholder="如：公司邮箱 / 阿里云控制台" value="<?= e($editing['title'] ?? '') ?>">
+                           placeholder="<?= e(t('如：公司邮箱 / 阿里云控制台')) ?>" value="<?= e($editing['title'] ?? '') ?>">
                 </div>
 
                 <div class="form-field">
-                    <label class="field-label" for="v-url">网址<span class="req">*</span></label>
+                    <label class="field-label" for="v-url"><?= e(t('网址')) ?><span class="req">*</span></label>
                     <input class="form-input" type="text" id="v-url" name="url" maxlength="500" required
                            placeholder="https://example.com/login" value="<?= e($editing['url'] ?? '') ?>">
-                    <p class="field-hint">缺省协议将自动补 https://，仅允许 http / https。</p>
+                    <p class="field-hint"><?= e(t('缺省协议将自动补 https')) ?>://，仅允许 http / https。</p>
                 </div>
 
                 <div class="form-field">
-                    <label class="field-label" for="v-username">账号</label>
+                    <label class="field-label" for="v-username"><?= e(t('账号')) ?></label>
                     <div class="vault-input-group">
                         <input class="form-input" type="text" id="v-username" name="username" maxlength="120"
-                               autocomplete="off" placeholder="登录账号 / 邮箱" value="<?= e($editing['username'] ?? '') ?>">
+                               autocomplete="off" placeholder="<?= e(t('登录账号 / 邮箱')) ?>" value="<?= e($editing['username'] ?? '') ?>">
                     </div>
                 </div>
 
                 <div class="form-field">
-                    <label class="field-label" for="v-password">密码</label>
+                    <label class="field-label" for="v-password"><?= e(t('密码')) ?></label>
                     <div class="vault-input-group">
                         <input class="form-input" type="password" id="v-password" name="password" maxlength="200"
-                               autocomplete="new-password" placeholder="<?= $editing ? '留空表示不修改已存密码' : '留空表示暂不保存密码' ?>">
-                        <button type="button" class="mini-btn" data-vault-toggle="v-password">👁 显示</button>
-                        <button type="button" class="mini-btn" id="vaultGenPwd" data-vault-target="v-password">🎲 生成</button>
+                               autocomplete="new-password" placeholder="<?= $editing ? t('留空表示不修改已存密码') : t('留空表示暂不保存密码') ?>">
+                        <button type="button" class="mini-btn" data-vault-toggle="v-password">👁 <?= e(t('显示')) ?></button>
+                        <button type="button" class="mini-btn" id="vaultGenPwd" data-vault-target="v-password">🎲 <?= e(t('生成')) ?></button>
                     </div>
                     <div class="vault-strength" data-vault-strength="v-password" data-level="0">
                         <div class="vs-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-                        <span class="vs-text">强度：—</span>
+                        <span class="vs-text"><?= e(t('强度：—')) ?></span>
                     </div>
                 </div>
 
                 <div class="form-field">
-                    <label class="field-label" for="v-category">分类</label>
+                    <label class="field-label" for="v-category"><?= e(t('分类')) ?></label>
                     <input class="form-input" type="text" id="v-category" name="category" maxlength="40" list="vaultCats"
-                           placeholder="如：运维 / 第三方服务" value="<?= e($editing['category'] ?? '') ?>">
+                           placeholder="<?= e(t('如：运维 / 第三方服务')) ?>" value="<?= e($editing['category'] ?? '') ?>">
                     <datalist id="vaultCats">
                         <?php foreach ($cats as $c): ?><option value="<?= e($c) ?>"></option><?php endforeach; ?>
                     </datalist>
                 </div>
 
                 <div class="form-field">
-                    <label class="field-label" for="v-notes">备注</label>
+                    <label class="field-label" for="v-notes"><?= e(t('备注')) ?></label>
                     <textarea class="form-input" id="v-notes" name="notes" rows="3" maxlength="500"
-                              placeholder="密保问题 / 使用范围 / 到期提醒等"><?= e($editing['notes'] ?? '') ?></textarea>
+                              placeholder="<?= e(t('密保问题 / 使用范围 / 到期提醒等')) ?>"><?= e($editing['notes'] ?? '') ?></textarea>
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary"><?= $editing ? '保存修改' : '加入保险箱' ?></button>
+                    <button type="submit" class="btn-primary"><?= $editing ? t('保存修改') : t('加入保险箱') ?></button>
                     <?php if ($editing): ?>
-                        <a class="btn-ghost" href="<?= e(vault_list_url($q, $filterCat, (int)$list['page'])) ?>">取消编辑</a>
+                        <a class="btn-ghost" href="<?= e(vault_list_url($q, $filterCat, (int)$list['page'])) ?>"><?= e(t('取消编辑')) ?></a>
                     <?php endif; ?>
                 </div>
             </form>
@@ -417,17 +417,17 @@ admin_header('密码保险箱', 'vault');
         <!-- 右栏：列表 -->
         <section class="panel glass">
             <div class="vault-list-head">
-                <h2 class="panel-title">🗝️ 条目列表<?= $list['total'] > 0 ? '（共 ' . $list['total'] . ' 条）' : '' ?></h2>
+                <h2 class="panel-title">🗝️ <?= e(t('条目列表')) ?><?= $list['total'] > 0 ? ('（' . t('共') . ' ') . $list['total'] . (' ' . t('条）')) : '' ?></h2>
                 <form method="get" action="vault.php" class="vault-search" role="search">
                     <input class="form-input" type="search" name="q" value="<?= e($q) ?>"
-                           placeholder="搜索标题 / 网址 / 账号 / 备注 / 分类" aria-label="搜索保险箱条目">
-                    <select class="form-input" name="cat" aria-label="按分类筛选">
-                        <option value="">全部分类</option>
+                           placeholder="<?= e(t('搜索标题 / 网址 / 账号 / 备注 / 分类')) ?>" aria-label="<?= e(t('搜索保险箱条目')) ?>">
+                    <select class="form-input" name="cat" aria-label="<?= e(t('按分类筛选')) ?>">
+                        <option value=""><?= e(t('全部分类')) ?></option>
                         <?php foreach ($cats as $c): ?>
                             <option value="<?= e($c) ?>" <?= $c === $filterCat ? 'selected' : '' ?>><?= e($c) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <button type="submit" class="btn-primary btn-sm">搜索</button>
+                    <button type="submit" class="btn-primary btn-sm"><?= e(t('搜索')) ?></button>
                     <?php if ($q !== '' || $filterCat !== ''): ?>
                         <a class="btn-ghost btn-sm" href="vault.php">清空</a>
                     <?php endif; ?>
@@ -437,33 +437,33 @@ admin_header('密码保险箱', 'vault');
             <?php if (!$list['rows']): ?>
                 <div class="empty-tip">
                     <span class="et-ico">🗃️</span>
-                    <p><strong><?= ($q !== '' || $filterCat !== '') ? '没有匹配的条目' : '保险箱还是空的' ?></strong></p>
-                    <p><?= ($q !== '' || $filterCat !== '') ? '换个关键字或清空筛选再试试。' : '在左侧填写标题与网址，即可把账号密码加密存入。' ?></p>
+                    <p><strong><?= ($q !== '' || $filterCat !== '') ? t('没有匹配的条目') : t('保险箱还是空的') ?></strong></p>
+                    <p><?= ($q !== '' || $filterCat !== '') ? t('换个关键字或清空筛选再试试。') : t('在左侧填写标题与网址，即可把账号密码加密存入。') ?></p>
                 </div>
             <?php else: ?>
                 <div class="table-wrap vault-table-wrap">
                     <table class="data-table vault-table">
                         <thead>
                             <tr>
-                                <th scope="col">标题</th>
-                                <th scope="col">网址</th>
-                                <th scope="col">账号</th>
-                                <th scope="col">密码</th>
-                                <th scope="col">分类</th>
-                                <th scope="col">更新时间</th>
-                                <th scope="col" class="th-actions">操作</th>
+                                <th scope="col"><?= e(t('标题')) ?></th>
+                                <th scope="col"><?= e(t('网址')) ?></th>
+                                <th scope="col"><?= e(t('账号')) ?></th>
+                                <th scope="col"><?= e(t('密码')) ?></th>
+                                <th scope="col"><?= e(t('分类')) ?></th>
+                                <th scope="col"><?= e(t('更新时间')) ?></th>
+                                <th scope="col" class="th-actions"><?= e(t('操作')) ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($list['rows'] as $row): $rid = (int)$row['id']; ?>
                                 <tr data-vault-row="<?= $rid ?>">
-                                    <td class="cell-name" data-label="标题" title="<?= e($row['title']) ?>">
+                                    <td class="cell-name" data-label="<?= e(t('标题')) ?>" title="<?= e($row['title']) ?>">
                                         <?= e($row['title']) ?>
                                         <?php if (trim((string)$row['notes']) !== ''): ?>
-                                            <span class="vault-note-dot" title="含备注">•</span>
+                                            <span class="vault-note-dot" title="<?= e(t('含备注')) ?>">•</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="cell-url" data-label="网址">
+                                    <td class="cell-url" data-label="<?= e(t('网址')) ?>">
                                         <?php $safeUrl = vault_safe_url((string)$row['url']); ?>
                                         <?php if ($safeUrl !== ''): ?>
                                             <a href="<?= e($safeUrl) ?>" target="_blank" rel="noopener noreferrer" title="<?= e($row['url']) ?>"><?= e($row['url']) ?></a>
@@ -471,52 +471,52 @@ admin_header('密码保险箱', 'vault');
                                             <span class="muted" title="<?= e($row['url']) ?>"><?= e($row['url']) ?></span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="vault-cell-secret" data-label="账号">
+                                    <td class="vault-cell-secret" data-label="<?= e(t('账号')) ?>">
                                         <?php if ((string)$row['username'] === ''): ?>
                                             <span class="muted">—</span>
                                         <?php else: ?>
                                             <span class="secret-line">
                                                 <span class="vault-mask" data-vault-mask="<?= $rid ?>-username">••••••••</span>
                                                 <span class="vault-cell-actions">
-                                                    <button type="button" class="mini-btn" data-vault-act="show" data-vault-id="<?= $rid ?>" data-vault-field="username">显示</button>
-                                                    <button type="button" class="mini-btn" data-vault-act="copy" data-vault-id="<?= $rid ?>" data-vault-field="username">复制</button>
+                                                    <button type="button" class="mini-btn" data-vault-act="show" data-vault-id="<?= $rid ?>" data-vault-field="username"><?= e(t('显示')) ?></button>
+                                                    <button type="button" class="mini-btn" data-vault-act="copy" data-vault-id="<?= $rid ?>" data-vault-field="username"><?= e(t('复制')) ?></button>
                                                 </span>
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="vault-cell-secret" data-label="密码">
+                                    <td class="vault-cell-secret" data-label="<?= e(t('密码')) ?>">
                                         <?php if ((string)$row['password_enc'] === ''): ?>
                                             <span class="muted">—</span>
                                         <?php else: ?>
                                             <span class="secret-line">
                                                 <span class="vault-mask" data-vault-mask="<?= $rid ?>-password">••••••••</span>
                                                 <span class="vault-cell-actions">
-                                                    <button type="button" class="mini-btn" data-vault-act="show" data-vault-id="<?= $rid ?>" data-vault-field="password">显示</button>
-                                                    <button type="button" class="mini-btn" data-vault-act="copy" data-vault-id="<?= $rid ?>" data-vault-field="password">复制</button>
+                                                    <button type="button" class="mini-btn" data-vault-act="show" data-vault-id="<?= $rid ?>" data-vault-field="password"><?= e(t('显示')) ?></button>
+                                                    <button type="button" class="mini-btn" data-vault-act="copy" data-vault-id="<?= $rid ?>" data-vault-field="password"><?= e(t('复制')) ?></button>
                                                 </span>
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td data-label="分类">
+                                    <td data-label="<?= e(t('分类')) ?>">
                                         <?php if ((string)$row['category'] !== ''): ?>
                                             <span class="cat-chip gray" title="<?= e($row['category']) ?>"><?= e($row['category']) ?></span>
                                         <?php else: ?>
                                             <span class="muted">—</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="cell-time" data-label="更新时间" title="<?= e((string)$row['updated_at']) ?>"><?= e((string)$row['updated_at']) ?></td>
-                                    <td class="cell-actions" data-label="操作">
+                                    <td class="cell-time" data-label="<?= e(t('更新时间')) ?>" title="<?= e((string)$row['updated_at']) ?>"><?= e((string)$row['updated_at']) ?></td>
+                                    <td class="cell-actions" data-label="<?= e(t('操作')) ?>">
                                         <div class="row-actions">
-                                            <a class="mini-btn" href="<?= e(vault_list_url($q, $filterCat, (int)$list['page'], ['edit' => $rid])) ?>" title="编辑条目" aria-label="编辑条目：<?= e($row['title']) ?>"><?php /* 图标按钮：无障碍标签见 aria-label */ ?><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></a>
+                                            <a class="mini-btn" href="<?= e(vault_list_url($q, $filterCat, (int)$list['page'], ['edit' => $rid])) ?>" title="<?= e(t('编辑条目')) ?>" aria-label="<?= e(t('编辑条目：')) ?><?= e($row['title']) ?>"><?php /* 图标按钮：无障碍标签见 aria-label */ ?><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></a>
                                             <form method="post" action="vault.php" class="inline-form"
-                                                  onsubmit="return confirm('确定删除条目「<?= e($row['title']) ?>」吗？此操作不可恢复！');">
+                                                  onsubmit="<?= e('return confirm(' . json_encode(t('确定删除条目「{name}」吗？此操作不可恢复！', ['name' => $row['title']]), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ');') ?>">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="id" value="<?= $rid ?>">
                                                 <input type="hidden" name="ret_q" value="<?= e($q) ?>">
                                                 <input type="hidden" name="ret_cat" value="<?= e($filterCat) ?>">
                                                 <input type="hidden" name="ret_page" value="<?= (int)$list['page'] ?>">
-                                                <button type="submit" class="mini-btn mini-danger" title="删除条目" aria-label="删除条目：<?= e($row['title']) ?>"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
+                                                <button type="submit" class="mini-btn mini-danger" title="<?= e(t('删除条目')) ?>" aria-label="<?= e(t('删除条目：')) ?><?= e($row['title']) ?>"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
                                             </form>
                                         </div>
                                     </td>
@@ -528,7 +528,7 @@ admin_header('密码保险箱', 'vault');
 
                 <?php if ($list['pages'] <= 1): ?>
                     <div class="pagination is-single">
-                        <span class="page-meta">共 <?= $list['total'] ?> 条 · 第 <?= $list['page'] ?> / <?= $list['pages'] ?> 页</span>
+                        <span class="page-meta"><?= e(t('共')) ?> <?= $list['total'] ?> <?= e(t('条 · 第')) ?> <?= $list['page'] ?> / <?= $list['pages'] ?> <?= e(t('页')) ?></span>
                     </div>
                 <?php else: ?>
                     <?php
@@ -543,13 +543,13 @@ admin_header('密码保险箱', 'vault');
                         $pages[] = $list['pages'];
                     }
                     ?>
-                    <nav class="pagination" aria-label="保险箱条目分页">
-                        <span class="page-meta">共 <?= $list['total'] ?> 条 · 第 <?= $list['page'] ?> / <?= $list['pages'] ?> 页</span>
+                    <nav class="pagination" aria-label="<?= e(t('保险箱条目分页')) ?>">
+                        <span class="page-meta"><?= e(t('共')) ?> <?= $list['total'] ?> <?= e(t('条 · 第')) ?> <?= $list['page'] ?> / <?= $list['pages'] ?> <?= e(t('页')) ?></span>
                         <div class="page-btns">
                             <?php if ($list['page'] > 1): ?>
-                                <a class="page-btn" href="<?= e(vault_list_url($q, $filterCat, $list['page'] - 1)) ?>" rel="prev">‹ 上一页</a>
+                                <a class="page-btn" href="<?= e(vault_list_url($q, $filterCat, $list['page'] - 1)) ?>" rel="prev">‹ <?= e(t('上一页')) ?></a>
                             <?php else: ?>
-                                <span class="page-btn is-disabled" aria-disabled="true">‹ 上一页</span>
+                                <span class="page-btn is-disabled" aria-disabled="true">‹ <?= e(t('上一页')) ?></span>
                             <?php endif; ?>
 
                             <?php foreach ($pages as $pg): ?>
@@ -563,16 +563,16 @@ admin_header('密码保险箱', 'vault');
                             <?php endforeach; ?>
 
                             <?php if ($list['page'] < $list['pages']): ?>
-                                <a class="page-btn" href="<?= e(vault_list_url($q, $filterCat, $list['page'] + 1)) ?>" rel="next">下一页 ›</a>
+                                <a class="page-btn" href="<?= e(vault_list_url($q, $filterCat, $list['page'] + 1)) ?>" rel="next"><?= e(t('下一页')) ?> ›</a>
                             <?php else: ?>
-                                <span class="page-btn is-disabled" aria-disabled="true">下一页 ›</span>
+                                <span class="page-btn is-disabled" aria-disabled="true"><?= e(t('下一页')) ?> ›</span>
                             <?php endif; ?>
                         </div>
                     </nav>
                 <?php endif; ?>
             <?php endif; ?>
 
-            <p class="vault-tip">账号与密码默认打码，点「显示 / 复制」时才向服务端按需取明文；页面源码中不含任何明文密码。</p>
+            <p class="vault-tip"><?= e(t('账号与密码默认打码，点「显示 / 复制」时才向服务端按需取明文；页面源码中不含任何明文密码。')) ?></p>
         </section>
     </div>
 
@@ -586,21 +586,21 @@ admin_header('密码保险箱', 'vault');
             <input type="hidden" name="action" value="reset_vault">
 
             <header class="modal-head">
-                <h2 class="modal-title" id="vaultResetTitle">重置保险箱</h2>
-                <button type="button" class="modal-close" id="vaultResetClose" aria-label="关闭弹窗">✕</button>
+                <h2 class="modal-title" id="vaultResetTitle"><?= e(t('重置保险箱')) ?></h2>
+                <button type="button" class="modal-close" id="vaultResetClose" aria-label="<?= e(t('关闭弹窗')) ?>">✕</button>
             </header>
 
             <div class="modal-body">
-                <p class="modal-tip" id="vaultResetDesc">重置会删除保险箱中的<strong>全部条目</strong>，并清除主密码与加密密钥。数据经 AES-256-GCM 加密，密钥不可复原，因此原条目<strong class="danger-text">无法恢复</strong>。</p>
+                <p class="modal-tip" id="vaultResetDesc"><?= e(t('重置会删除保险箱中的')) ?><strong><?= e(t('全部条目')) ?></strong>，<?= e(t('并清除主密码与加密密钥。数据经 AES-256-GCM 加密，密钥不可复原，因此原条目')) ?><strong class="danger-text"><?= e(t('无法恢复')) ?></strong>。</p>
 
                 <section class="modal-section modal-danger">
-                    <h3 class="modal-section-title">危险确认</h3>
+                    <h3 class="modal-section-title"><?= e(t('危险确认')) ?></h3>
                     <label class="check-label" for="vault-ack">
                         <input type="checkbox" name="ack" value="1" id="vault-ack">
-                        <span>我已了解：重置后全部条目永久丢失，且无法通过任何方式找回。</span>
+                        <span><?= e(t('我已了解：重置后全部条目永久丢失，且无法通过任何方式找回。')) ?></span>
                     </label>
                     <div class="form-field">
-                        <label class="field-label" for="vault-confirm">请输入「<?= e(VAULT_RESET_PHRASE) ?>」以确认<span class="req">*</span></label>
+                        <label class="field-label" for="vault-confirm"><?= e(t('请输入「')) ?><?= e(VAULT_RESET_PHRASE) ?>」<?= e(t('以确认')) ?><span class="req">*</span></label>
                         <input class="form-input" type="text" id="vault-confirm" name="confirm_text"
                                autocomplete="off" placeholder="<?= e(VAULT_RESET_PHRASE) ?>">
                     </div>
@@ -609,8 +609,8 @@ admin_header('密码保险箱', 'vault');
             </div>
 
             <footer class="modal-foot">
-                <button type="button" class="btn-ghost" id="vaultResetCancel">取消</button>
-                <button type="submit" class="btn-danger" id="vaultResetSubmit">确认重置保险箱</button>
+                <button type="button" class="btn-ghost" id="vaultResetCancel"><?= e(t('取消')) ?></button>
+                <button type="submit" class="btn-danger" id="vaultResetSubmit"><?= e(t('确认重置保险箱')) ?></button>
             </footer>
         </form>
     </div>
@@ -640,9 +640,9 @@ admin_header('密码保险箱', 'vault');
             headers: { 'X-Requested-With': 'XMLHttpRequest' },
             body: body
         }).then(function (res) {
-            return res.json().catch(function () { return { ok: false, message: '返回数据异常。' }; });
+            return res.json().catch(function () { return { ok: false, message: (<?= jt('返回数据异常。') ?>) }; });
         }).then(function (data) {
-            if (!data.ok) { throw new Error(data.message || '读取失败。'); }
+            if (!data.ok) { throw new Error(data.message || (<?= jt('读取失败。') ?>)); }
             return data.value;
         });
     }
@@ -662,7 +662,7 @@ admin_header('密码保险箱', 'vault');
             var ok = false;
             try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
             document.body.removeChild(ta);
-            ok ? resolve() : reject(new Error('复制失败，请手动选择文本。'));
+            ok ? resolve() : reject(new Error((<?= jt('复制失败，请手动选择文本。') ?>)));
         });
     }
 
@@ -690,18 +690,18 @@ admin_header('密码保险箱', 'vault');
                 mask.textContent = '••••••••';
                 mask.setAttribute('data-revealed', '0');
                 mask.classList.remove('is-revealed');
-                btn.textContent = '显示';
+                btn.textContent = (<?= jt('显示') ?>);
                 return;
             }
 
             btn.disabled = true;
             fetchSecret(id, field).then(function (value) {
-                mask.textContent = value === '' ? '（空）' : value;
+                mask.textContent = value === '' ? ('（' + <?= jt('空）') ?>) : value;
                 mask.setAttribute('data-revealed', '1');
                 mask.classList.add('is-revealed');
-                btn.textContent = '隐藏';
+                btn.textContent = (<?= jt('隐藏') ?>);
             }).catch(function (err) {
-                flashCell(btn, '读取失败', true);
+                flashCell(btn, (<?= jt('读取失败') ?>), true);
                 window.alert(err.message);
             }).finally(function () { btn.disabled = false; });
             return;
@@ -713,12 +713,12 @@ admin_header('密码保险箱', 'vault');
             var cfield = btn.getAttribute('data-vault-field');
             btn.disabled = true;
             fetchSecret(cid, cfield).then(function (value) {
-                if (value === '') { throw new Error('该字段为空，无可复制内容。'); }
+                if (value === '') { throw new Error((<?= jt('该字段为空，无可复制内容。') ?>)); }
                 return copyText(value);
             }).then(function () {
-                flashCell(btn, '✓ 已复制', false);
+                flashCell(btn, ('✓ ' + <?= jt('已复制') ?>), false);
             }).catch(function (err) {
-                flashCell(btn, '复制失败', true);
+                flashCell(btn, (<?= jt('复制失败') ?>), true);
                 window.alert(err.message);
             }).finally(function () { btn.disabled = false; });
             return;
@@ -731,7 +731,7 @@ admin_header('密码保险箱', 'vault');
             if (!input) { return; }
             var visible = input.type === 'text';
             input.type = visible ? 'password' : 'text';
-            toggle.textContent = visible ? '👁 显示' : '🙈 隐藏';
+            toggle.textContent = visible ? ('👁 ' + <?= jt('显示') ?>) : ('🙈 ' + <?= jt('隐藏') ?>);
         }
     });
 
@@ -748,7 +748,7 @@ admin_header('密码保险箱', 'vault');
         if (value.length < 8) { score = Math.min(score, 1); }
         return score;
     }
-    var LEVEL_TEXT = ['强度：—', '强度：弱（易被猜解）', '强度：中', '强度：较强', '强度：强（推荐）'];
+    var LEVEL_TEXT = [(<?= jt('强度：—') ?>), (<?= jt('强度：弱（易被猜解）') ?>), (<?= jt('强度：中') ?>), (<?= jt('强度：较强') ?>), (<?= jt('强度：强（推荐）') ?>)];
 
     function refreshStrength(input) {
         var wrap = document.querySelector('[data-vault-strength="' + input.id + '"]');
@@ -758,7 +758,7 @@ admin_header('密码保险箱', 'vault');
         var text = wrap.querySelector('.vs-text');
         if (text) {
             text.textContent = input.value
-                ? LEVEL_TEXT[level] + (input.value.length < 8 ? '，至少 8 位' : '')
+                ? LEVEL_TEXT[level] + (input.value.length < 8 ? ('，' + <?= jt('至少 8 位') ?>) : '')
                 : LEVEL_TEXT[0];
         }
     }
@@ -804,7 +804,7 @@ admin_header('密码保险箱', 'vault');
             input.value = chars.join('');
             input.type = 'text';   // 生成后直接可见，便于立即复制
             var toggle = document.querySelector('[data-vault-toggle="' + input.id + '"]');
-            if (toggle) { toggle.textContent = '🙈 隐藏'; }
+            if (toggle) { toggle.textContent = ('🙈 ' + <?= jt('隐藏') ?>); }
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.focus();
             input.select();
@@ -822,7 +822,7 @@ admin_header('密码保险箱', 'vault');
                 window.location.reload();
                 return;
             }
-            timerEl.textContent = '🔓 已解锁 · ' + pad(Math.floor(remaining / 60)) + ':' + pad(remaining % 60) + ' 后自动锁定';
+            timerEl.textContent = ('🔓 ' + <?= jt('已解锁 ·') ?> + ' ') + pad(Math.floor(remaining / 60)) + ':' + pad(remaining % 60) + (' ' + <?= jt('后自动锁定') ?>);
             remaining -= 1;
         };
         tick();
@@ -863,9 +863,9 @@ admin_header('密码保险箱', 'vault');
         form.addEventListener('submit', function (ev) {
             var msg = '';
             if (!ackEl || !ackEl.checked) {
-                msg = '请先勾选「我已了解该操作不可恢复」。';
+                msg = (<?= jt('请先勾选「我已了解该操作不可恢复」。') ?>);
             } else if (!textEl || textEl.value.trim() !== RESET_PHRASE) {
-                msg = '请输入「' + RESET_PHRASE + '」以确认。';
+                msg = (<?= jt('请输入「') ?>) + RESET_PHRASE + ('」' + <?= jt('以确认。') ?>);
             }
             if (msg) {
                 ev.preventDefault();

@@ -104,7 +104,7 @@ function vault_derive_key(string $master): string
     $saltHex = vault_meta_get('kdf_salt');
     $saltRaw = $saltHex !== '' ? (hex2bin($saltHex) ?: '') : '';
     if ($saltRaw === '' || strlen($saltRaw) !== VAULT_KDF_SALT_BYTES) {
-        throw new RuntimeException('保险箱密钥派生参数缺失，请重置保险箱后重新设置主密码。');
+        throw new RuntimeException(t('保险箱密钥派生参数缺失，请重置保险箱后重新设置主密码。'));
     }
 
     return hash_pbkdf2('sha256', $master, $saltRaw, vault_kdf_iterations(), VAULT_KDF_KEY_BYTES, true);
@@ -116,14 +116,14 @@ function vault_derive_key(string $master): string
 function vault_encrypt(string $plain, string $key): string
 {
     if (strlen($key) !== VAULT_KDF_KEY_BYTES) {
-        throw new RuntimeException('保险箱密钥无效，请重新解锁。');
+        throw new RuntimeException(t('保险箱密钥无效，请重新解锁。'));
     }
 
     $iv  = random_bytes(VAULT_GCM_IV_BYTES);
     $tag = '';
     $cipher = openssl_encrypt($plain, VAULT_GCM_CIPHER, $key, OPENSSL_RAW_DATA, $iv, $tag, '', VAULT_GCM_TAG_BYTES);
     if ($cipher === false || strlen($tag) !== VAULT_GCM_TAG_BYTES) {
-        throw new RuntimeException('密码加密失败，请稍后重试。');
+        throw new RuntimeException(t('密码加密失败，请稍后重试。'));
     }
 
     return base64_encode($iv . $tag . $cipher);

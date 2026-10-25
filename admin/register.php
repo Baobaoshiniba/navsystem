@@ -30,38 +30,38 @@ $len = static function (string $s): int {
 
 if (is_post()) {
     if (!$openRegister) {
-        $errors[] = '注册已关闭，暂不支持创建新账号。';
+        $errors[] = t('注册已关闭，暂不支持创建新账号。');
     } elseif (!csrf_verify()) {
-        $errors[] = '安全校验失败，请刷新页面重试。';
+        $errors[] = t('安全校验失败，请刷新页面重试。');
     } else {
         $username = post('username');
         $password = (string)($_POST['password'] ?? '');
         $confirm  = (string)($_POST['confirm_password'] ?? '');
 
         if ($username === '') {
-            $errors[]        = '请输入用户名。';
+            $errors[]        = t('请输入用户名。');
             $flags['username'] = true;
         } elseif ($len($username) < 3 || $len($username) > 20) {
-            $errors[]        = '用户名长度需为 3–20 个字符。';
+            $errors[]        = t('用户名长度需为 3–20 个字符。');
             $flags['username'] = true;
         } elseif (!preg_match('/^[\x{4e00}-\x{9fa5}A-Za-z0-9_.-]+$/u', $username)) {
-            $errors[]        = '用户名仅支持中英文、数字、下划线、连字符与点。';
+            $errors[]        = t('用户名仅支持中英文、数字、下划线、连字符与点。');
             $flags['username'] = true;
         }
 
         if ($password === '') {
-            $errors[]         = '请输入密码。';
+            $errors[]         = t('请输入密码。');
             $flags['password'] = true;
         } elseif ($len($password) < 6) {
-            $errors[]         = '密码至少 6 位。';
+            $errors[]         = t('密码至少 6 位。');
             $flags['password'] = true;
         } elseif ($len($password) > 64) {
-            $errors[]         = '密码最长 64 位。';
+            $errors[]         = t('密码最长 64 位。');
             $flags['password'] = true;
         }
 
         if (!$flags['password'] && $password !== $confirm) {
-            $errors[]                = '两次输入的密码不一致，请重新确认。';
+            $errors[]                = t('两次输入的密码不一致，请重新确认。');
             $flags['confirm_password'] = true;
         }
 
@@ -81,11 +81,11 @@ $siteName = e(setting('site_name'));
 $theme    = theme_preference();
 ?>
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="<?= $theme ?>">
+<html lang="<?= e(locale()) ?>" data-theme="<?= $theme ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>注册管理账号 · <?= $siteName ?></title>
+<title><?= e(t('注册管理账号 ·')) ?> <?= $siteName ?></title>
 <?= favicon_html('../assets/') ?>
 <style>
 html:not([data-loaded]) { background:#faf1dd; }
@@ -97,25 +97,26 @@ html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
 <div class="auth-shell">
 
     <?= auth_brand_html(
-        '三步开通你的管理账号',
-        '注册成功后即可登录后台，维护站点分类、链接与展示文案，所有改动前台即时生效。',
+        t('三步开通你的管理账号'),
+        t('注册成功后即可登录后台，维护站点分类、链接与展示文案，所有改动前台即时生效。'),
         [
-            '用户名与密码自主设置，密码哈希存储',
-            '注册入口由「站点设置」开关统一控制',
-            '账号开通后即刻可登录，无需人工审批',
+            t('用户名与密码自主设置，密码哈希存储'),
+            t('注册入口由「站点设置」开关统一控制'),
+            t('账号开通后即刻可登录，无需人工审批'),
         ],
-        '管理后台 · 注册开放状态可随时调整'
+        t('管理后台 · 注册开放状态可随时调整')
     ) ?>
 
     <main class="auth-panel">
         <section class="auth-card" aria-labelledby="authTitle">
+            <div class="auth-language"><?= language_switch_html() ?></div>
             <div class="auth-card-head">
-                <span class="auth-badge">创建账号</span>
-                <h2 class="auth-title" id="authTitle"><?= $openRegister ? '注册管理账号' : '注册已关闭' ?></h2>
+                <span class="auth-badge"><?= e(t('创建账号')) ?></span>
+                <h2 class="auth-title" id="authTitle"><?= $openRegister ? t('注册管理账号') : t('注册已关闭') ?></h2>
                 <p class="auth-sub">
                     <?= $openRegister
-                        ? '用户名 3–20 位，密码不少于 6 位。'
-                        : '管理员已在「站点设置」中关闭了注册入口。' ?>
+                        ? t('用户名 3–20 位，密码不少于 6 位。')
+                        : t('管理员已在「站点设置」中关闭了注册入口。') ?>
                 </p>
             </div>
 
@@ -134,42 +135,42 @@ html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
                     <?= csrf_field() ?>
 
                     <div class="form-field">
-                        <label class="field-label" for="username">用户名</label>
+                        <label class="field-label" for="username"><?= e(t('用户名')) ?></label>
                         <input class="form-input<?= $flags['username'] ? ' is-error' : '' ?>" type="text"
                                id="username" name="username" value="<?= e($username) ?>"
                                required autocomplete="username" autofocus
-                               placeholder="3–20 位，中英文 / 数字 / _ - .">
+                               placeholder="3–20 <?= e(t('位，中英文 / 数字 / _ -')) ?> .">
                     </div>
 
                     <div class="form-field">
-                        <label class="field-label" for="password">密码</label>
+                        <label class="field-label" for="password"><?= e(t('密码')) ?></label>
                         <input class="form-input<?= $flags['password'] ? ' is-error' : '' ?>" type="password"
                                id="password" name="password" required autocomplete="new-password"
-                               placeholder="至少 6 位">
+                               placeholder="<?= e(t('至少 6 位')) ?>">
                     </div>
 
                     <div class="form-field">
-                        <label class="field-label" for="confirm_password">确认密码</label>
+                        <label class="field-label" for="confirm_password"><?= e(t('确认密码')) ?></label>
                         <input class="form-input<?= $flags['confirm_password'] ? ' is-error' : '' ?>" type="password"
                                id="confirm_password" name="confirm_password" required
-                               autocomplete="new-password" placeholder="请再次输入密码">
+                               autocomplete="new-password" placeholder="<?= e(t('请再次输入密码')) ?>">
                     </div>
 
-                    <button type="submit" class="btn-primary btn-block">注 册</button>
+                    <button type="submit" class="btn-primary btn-block"><?= e(t('注 册')) ?></button>
                 </form>
             <?php endif; ?>
 
             <div class="auth-alt">
-                <span>已有账号？</span>
-                <a href="login.php">返回登录</a>
+                <span><?= e(t('已有账号？')) ?></span>
+                <a href="login.php"><?= e(t('返回登录')) ?></a>
                 <?php if (!$openRegister): ?>
-                    <span class="auth-alt-note">如需开放注册，请登录后台在「站点设置」中开启。</span>
+                    <span class="auth-alt-note"><?= e(t('如需开放注册，请登录后台在「站点设置」中开启。')) ?></span>
                 <?php endif; ?>
             </div>
         </section>
 
         <div class="auth-back">
-            <a href="../index.php">← 返回前台导航页</a>
+            <a href="../index.php">← <?= e(t('返回前台导航页')) ?></a>
         </div>
     </main>
 

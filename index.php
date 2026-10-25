@@ -23,7 +23,7 @@ $cats = $db->query('
 
 // 启用中的链接
 $links = $db->query('
-    SELECT l.*, c.name AS category_name, c.sort_order AS category_sort
+    SELECT l.*, c.name AS category_name, c.name_en AS category_name_en, c.sort_order AS category_sort
     FROM links l
     JOIN categories c ON c.id = l.category_id
     WHERE l.is_active = 1 AND c.is_active = 1
@@ -45,7 +45,7 @@ $totalClicks     = (int)$db->query('SELECT COALESCE(SUM(click_count), 0) FROM li
 $engines       = search_engines();
 $defaultEngine = default_search_engine_name();
 
-page_header('导航首页');
+page_header(t('导航首页'));
 
 $footerText = setting('footer_text');
 echo '<body class="app-body">';
@@ -57,20 +57,20 @@ echo '<header class="navbar glass">
             ' . logo_badge_html() . '
             <div>
                 <div class="brand-name">' . e(setting('logo_text')) . '</div>
-                <div class="brand-tag">' . e(setting('site_slogan')) . '</div>
+                <div class="brand-tag">' . e(setting('site_slogan')) . ('</div>
             </div>
         </div>
         <div class="navbar-actions">
-            <div class="stats-chip" title="分类 / 链接 / 累计点击">
-                <span>📂 ' . $totalCategories . '</span>
+            <div class="stats-chip" title="' . t('分类 / 链接 / 累计点击') . '">
+                <span>📂 ') . $totalCategories . '</span>
                 <span>🔗 ' . $totalLinks . '</span>
                 <span>👆 ' . number_format($totalClicks) . '</span>
             </div>
-            ' . theme_toggle_html() . '
-            <a class="admin-link" href="admin/login.php" title="管理后台">后台管理</a>
+            ' . theme_toggle_html() . ('
+            <a class="admin-link" href="admin/login.php" title="' . t('管理后台') . '">' . t('后台管理') . '</a>
         </div>
     </div>
-</header>';
+</header>');
 
 /* 引擎胶囊标签条：先拼接 HTML，避免在 echo 字符串中嵌入 PHP 标签 */
 $enginePillsHtml = '';
@@ -79,9 +79,10 @@ foreach ($engines as $eng) {
     $enginePillsHtml .= '<button type="button" class="engine-pill' . ($isActive ? ' is-active' : '') . '"'
         . ' role="tab" aria-selected="' . ($isActive ? 'true' : 'false') . '"'
         . ' data-engine="' . e($eng['name']) . '"'
+        . ' data-label="' . e(t($eng['name'])) . '"'
         . ' data-template="' . e($eng['url']) . '"'
         . ' data-placeholder="' . e(search_input_placeholder($eng['name'])) . '">'
-        . e($eng['name'])
+        . e(t($eng['name']))
         . '</button>';
 }
 
@@ -91,30 +92,30 @@ echo '<section class="hero">
     <div class="hero-glow hero-glow-b"></div>
     <div class="container hero-inner">
         <h1 class="hero-title"><span class="grad-text">' . e(setting('site_name')) . '</span></h1>
-        <p class="hero-sub">' . e(setting('site_slogan')) . '</p>
-        <div class="agg-search" role="search" aria-label="聚合搜索">
-            <div class="engine-strip" id="engineStrip" role="tablist" aria-label="选择搜索引擎">' . $enginePillsHtml . '</div>
+        <p class="hero-sub">' . e(setting('site_slogan')) . ('</p>
+        <div class="agg-search" role="search" aria-label="' . t('聚合搜索') . '">
+            <div class="engine-strip" id="engineStrip" role="tablist" aria-label="' . t('选择搜索引擎') . '">') . $enginePillsHtml . '</div>
             <form class="agg-form" id="aggForm" role="search">
                 <span class="agg-icon" aria-hidden="true">🔍</span>
                 <input type="search" id="aggInput" class="agg-input" name="q"
                        placeholder="' . e(search_input_placeholder($defaultEngine)) . '"
-                       aria-label="' . e($defaultEngine) . ' 搜索关键词" autocomplete="off" enterkeyhint="search">
-                <button type="submit" class="agg-btn" id="aggBtn">搜索</button>
+                       aria-label="' . e(t($defaultEngine)) . (' ' . t('搜索关键词') . '" autocomplete="off" enterkeyhint="search">
+                <button type="submit" class="agg-btn" id="aggBtn">' . t('搜索') . '</button>
             </form>
             <div class="agg-tip" id="aggTip" role="status" hidden></div>
         </div>
     </div>
-</section>';
+</section>');
 
 /* ============ 分类筛选条 ============ */
 if ($cats) {
-    echo '<div class="container filter-bar">
-        <nav class="cat-filter" id="catFilter" aria-label="按分类筛选导航链接">
-            <button type="button" class="filter-pill is-active" data-cat="all" aria-pressed="true">全部<span class="filter-badge">' . $totalLinks . '</span></button>';
+    echo ('<div class="container filter-bar">
+        <nav class="cat-filter" id="catFilter" aria-label="' . t('按分类筛选导航链接') . '">
+            <button type="button" class="filter-pill is-active" data-cat="all" aria-pressed="true">' . t('全部') . '<span class="filter-badge">') . $totalLinks . '</span></button>';
     foreach ($cats as $cat) {
         $cid = (int)$cat['id'];
         echo '<button type="button" class="filter-pill" data-cat="' . $cid . '" aria-pressed="false">'
-            . e($cat['name']) . '<span class="filter-badge">' . (int)$cat['link_count'] . '</span></button>';
+            . e(localized_field($cat, 'name')) . '<span class="filter-badge">' . (int)$cat['link_count'] . '</span></button>';
     }
     echo '</nav>
     </div>';
@@ -122,7 +123,7 @@ if ($cats) {
 
 /* ============ 导航卡片区 ============ */
 echo '<main class="container main-area">';
-echo '<div class="filter-empty is-hidden" id="filterEmptyTip" role="status">该分类下暂无启用的导航链接</div>';
+echo ('<div class="filter-empty is-hidden" id="filterEmptyTip" role="status">' . t('该分类下暂无启用的导航链接') . '</div>');
 $catIndex = 0;
 foreach ($cats as $cat):
     $cid = (int)$cat['id'];
@@ -130,16 +131,16 @@ foreach ($cats as $cat):
     $color = $categoryColors[$catIndex % count($categoryColors)];
     $catIndex++;
 ?>
-<section class="category-block" id="cat-<?= $cid ?>" data-cat="<?= $cid ?>" data-name="<?= e($cat['name']) ?>"
+<section class="category-block" id="cat-<?= $cid ?>" data-cat="<?= $cid ?>" data-name="<?= e(localized_field($cat, 'name')) ?>"
          data-count="<?= $hasLinks ? count($grouped[$cid]) : 0 ?>">
     <div class="category-head">
         <span class="cat-icon" style="background:<?= $color ?>1f;border-color:<?= $color ?>55"><?= e($cat['icon'] ?: '📁') ?></span>
-        <h2 class="cat-title" style="color:<?= $color ?>"><?= e($cat['name']) ?></h2>
-        <span class="cat-count"><?= $hasLinks ? count($grouped[$cid]) : 0 ?> 项</span>
+        <h2 class="cat-title" style="color:<?= $color ?>"><?= e(localized_field($cat, 'name')) ?></h2>
+        <span class="cat-count"><?= e(item_count($hasLinks ? count($grouped[$cid]) : 0)) ?></span>
     </div>
 
     <?php if (!$hasLinks): ?>
-        <div class="empty-tip">该分类下暂无启用的导航链接</div>
+        <div class="empty-tip"><?= e(t('该分类下暂无启用的导航链接')) ?></div>
     <?php else: ?>
         <div class="link-grid">
             <?php foreach ($grouped[$cid] as $link): ?>
@@ -153,8 +154,8 @@ foreach ($cats as $cat):
                 $domain     = icon_display_host((string)$link['url']);
                 ?>
                 <a href="<?= $safeUrl ?>"<?= $ext ?> class="link-card"
-                   data-name="<?= e($link['title']) ?>"
-                   data-desc="<?= e($link['description']) ?>"
+                   data-name="<?= e(localized_field($link, 'title')) ?>"
+                   data-desc="<?= e(localized_field($link, 'description')) ?>"
                    data-url="<?= $safeUrl ?>"
                    onclick="recordClick(<?= (int)$link['id'] ?>, event)">
                     <span class="link-card-head">
@@ -168,16 +169,16 @@ foreach ($cats as $cat):
                             </span>
                         <?php endif; ?>
                         <span class="link-head-text">
-                            <span class="link-title"><?= e($link['title']) ?></span>
+                            <span class="link-title"><?= e(localized_field($link, 'title')) ?></span>
                             <?php if ($domain !== ''): ?>
                                 <span class="link-domain"><?= e($domain) ?></span>
                             <?php endif; ?>
                         </span>
                     </span>
-                    <span class="link-desc"><?= e($link['description'] !== '' ? $link['description'] : '暂无描述') ?></span>
+                    <span class="link-desc"><?= e(localized_field($link, 'description') !== '' ? localized_field($link, 'description') : t('暂无描述')) ?></span>
                     <span class="link-card-foot">
-                        <span class="link-badge link-badge-cat" style="--badge-tone:<?= e($color) ?>"><?= e($cat['name']) ?></span>
-                        <span class="link-count" title="点击次数">👆 <?= (int)$link['click_count'] ?></span>
+                        <span class="link-badge link-badge-cat" style="--badge-tone:<?= e($color) ?>"><?= e(localized_field($cat, 'name')) ?></span>
+                        <span class="link-count" title="<?= e(t('点击次数')) ?>">👆 <?= (int)$link['click_count'] ?></span>
                         <span class="link-arrow" aria-hidden="true">↗</span>
                     </span>
                 </a>
@@ -189,8 +190,8 @@ foreach ($cats as $cat):
 
 <?php if (!$cats): ?>
     <div class="empty-block">
-        <p>还没有可展示的分类，请先到后台添加分类与链接。</p>
-        <a class="btn-primary" href="admin/login.php">进入管理后台</a>
+        <p><?= e(t('还没有可展示的分类，请先到后台添加分类与链接。')) ?></p>
+        <a class="btn-primary" href="admin/login.php"><?= e(t('进入管理后台')) ?></a>
     </div>
 <?php endif; ?>
 </main>
@@ -244,7 +245,7 @@ function recordClick(id, ev) {
         });
         var ph = pill.getAttribute('data-placeholder');
         if (ph) { input.setAttribute('placeholder', ph); }
-        input.setAttribute('aria-label', (pill.getAttribute('data-engine') || '') + ' 搜索关键词');
+        input.setAttribute('aria-label', (pill.getAttribute('data-label') || '') + (' ' + <?= jt('搜索关键词') ?>));
         tip.hidden = true;
         if (focusInput) { input.focus(); }
     }
@@ -268,7 +269,7 @@ function recordClick(id, ev) {
         var q = (input.value || '').trim();
         if (q === '') {
             tip.hidden = false;
-            tip.textContent = '请输入要搜索的关键词';
+            tip.textContent = (<?= jt('请输入要搜索的关键词') ?>);
             input.focus();
             return;
         }
@@ -276,7 +277,7 @@ function recordClick(id, ev) {
         // 双保险：仅允许 http/https 模板，非法配置直接拦截
         if (!/^https?:\/\//i.test(tpl) || tpl.indexOf('{q}') === -1) {
             tip.hidden = false;
-            tip.textContent = '当前搜索引擎配置无效，请到后台「站点设置」检查';
+            tip.textContent = (<?= jt('当前搜索引擎配置无效，请到后台「站点设置」检查') ?>);
             return;
         }
         tip.hidden = true;
@@ -323,7 +324,9 @@ function recordClick(id, ev) {
             emptyTip.classList.toggle('is-hidden', !isEmptyCat);
         }
         if (syncUrl) {
-            var url = window.location.pathname + (cat === 'all' ? '' : '?cat=' + encodeURIComponent(cat)) + window.location.hash;
+            var url = new URL(window.location.href);
+            if (cat === 'all') url.searchParams.delete('cat');
+            else url.searchParams.set('cat', cat);
             if (window.history && window.history.replaceState) {
                 window.history.replaceState(null, '', url);
             }

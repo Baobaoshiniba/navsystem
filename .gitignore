@@ -1,9 +1,12 @@
 # macOS
 .DS_Store
 
-# 本地数据：仅放行空结构库（无真实数据），其余备份/WAL/SHM 一律排除
+# Local databases, backups and runtime files stay on each machine.
 data/*
-!data/company_nav.sqlite
+!data/demo.json
 
 # 日志
 *.log
+
+# Local IDE configuration
+.idea/

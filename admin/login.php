@@ -23,20 +23,20 @@ if (!empty($_SESSION['admin_logged_in'])) {
 
 $error    = '';
 $username = '';
-$notice   = isset($_GET['registered']) ? '注册成功，请使用新账号登录。' : '';
+$notice   = isset($_GET['registered']) ? t('注册成功，请使用新账号登录。') : '';
 
 if (is_post()) {
     if (!csrf_verify()) {
-        $error = '安全校验失败，请刷新页面重试。';
+        $error = t('安全校验失败，请刷新页面重试。');
     } else {
         $locked = login_lock_remaining();
 
         if ($locked > 0) {
             // 锁定期内直接拒绝，即便账号密码正确也不放行
-            $error = '登录失败次数过多，请 ' . $locked . ' 秒后再试。';
+            $error = (t('登录失败次数过多，请') . ' ') . $locked . (' ' . t('秒后再试。'));
         } elseif (!captcha_verify(post('captcha'))) {
             // 验证码错误不计入锁定计数，仅提示重试
-            $error = '验证码错误或已失效，请重新输入。';
+            $error = t('验证码错误或已失效，请重新输入。');
         } else {
             $username = post('username');
             $password = (string)($_POST['password'] ?? '');
@@ -51,8 +51,8 @@ if (is_post()) {
 
             $left  = login_attempt_fail();
             $error = $left > 0
-                ? '账号或密码错误，还可尝试 ' . $left . ' 次。'
-                : '账号或密码错误，失败次数过多，请 ' . LOGIN_LOCK_SECONDS . ' 秒后再试。';
+                ? (t('账号或密码错误，还可尝试') . ' ') . $left . (' ' . t('次。'))
+                : (t('账号或密码错误，失败次数过多，请') . ' ') . LOGIN_LOCK_SECONDS . (' ' . t('秒后再试。'));
         }
     }
 }
@@ -62,11 +62,11 @@ $theme        = theme_preference();
 $openRegister = register_enabled();
 ?>
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="<?= $theme ?>">
+<html lang="<?= e(locale()) ?>" data-theme="<?= $theme ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>管理后台登录 · <?= $siteName ?></title>
+<title><?= e(t('管理后台登录 ·')) ?> <?= $siteName ?></title>
 <?= favicon_html('../assets/') ?>
 <style>
 html:not([data-loaded]) { background:#faf1dd; }
@@ -78,22 +78,23 @@ html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
 <div class="auth-shell">
 
     <?= auth_brand_html(
-        '让每一次出发，都有清晰的入口',
-        '把分散在各处的业务站点、内部系统与常用工具收进同一个导航页，团队找地址不再靠收藏夹。',
+        t('让每一次出发，都有清晰的入口'),
+        t('把小组常用的协作平台、开发文档与学习资料整理在一起，让每位成员都能快速找到需要的资源。'),
         [
-            '集中维护内外网站点，分类与排序随时调整',
-            '账号密码加密入库，登录态安全可控',
-            '点击数据实时统计，热门入口一目了然',
+            t('按小组需要整理分类，随时更新常用资源'),
+            t('账号密码加密入库，登录态安全可控'),
+            t('点击数据实时统计，热门入口一目了然'),
         ],
-        '管理后台 · 仅限内部成员访问'
+        t('管理后台 · 小组成员维护入口')
     ) ?>
 
     <main class="auth-panel">
         <section class="auth-card" aria-labelledby="authTitle">
+            <div class="auth-language"><?= language_switch_html() ?></div>
             <div class="auth-card-head">
-                <span class="auth-badge">管理后台</span>
-                <h2 class="auth-title" id="authTitle">欢迎回来</h2>
-                <p class="auth-sub">请使用管理员账号登录，继续维护你的导航页。</p>
+                <span class="auth-badge"><?= e(t('管理后台')) ?></span>
+                <h2 class="auth-title" id="authTitle"><?= e(t('欢迎回来')) ?></h2>
+                <p class="auth-sub"><?= e(t('请使用管理员账号登录，继续维护你的导航页。')) ?></p>
             </div>
 
             <?php if ($notice): ?>
@@ -108,43 +109,43 @@ html[data-theme="dark"]:not([data-loaded]) { background:#0b1220; }
                 <?= csrf_field() ?>
 
                 <div class="form-field">
-                    <label class="field-label" for="username">账号</label>
+                    <label class="field-label" for="username"><?= e(t('账号')) ?></label>
                     <input class="form-input" type="text" id="username" name="username"
                            value="<?= e($username) ?>" required autocomplete="username"
-                           autofocus placeholder="请输入账号">
+                           autofocus placeholder="<?= e(t('请输入账号')) ?>">
                 </div>
 
                 <div class="form-field">
-                    <label class="field-label" for="password">密码</label>
+                    <label class="field-label" for="password"><?= e(t('密码')) ?></label>
                     <input class="form-input" type="password" id="password" name="password"
-                           required autocomplete="current-password" placeholder="请输入密码">
+                           required autocomplete="current-password" placeholder="<?= e(t('请输入密码')) ?>">
                 </div>
 
                 <div class="form-field">
-                    <label class="field-label" for="captcha">验证码</label>
+                    <label class="field-label" for="captcha"><?= e(t('验证码')) ?></label>
                     <div class="captcha-row">
                         <input class="form-input" type="text" id="captcha" name="captcha"
                                required autocomplete="off" maxlength="4"
-                               placeholder="请输入右侧 4 位字符">
+                               placeholder="<?= e(t('请输入右侧 4 位字符')) ?>">
                         <img class="captcha-img" id="captchaImg" src="captcha.php?v=<?= time() ?>"
-                             alt="验证码" title="点击换一张"
+                             alt="<?= e(t('验证码')) ?>" title="<?= e(t('点击换一张')) ?>"
                              onclick="this.src='captcha.php?v='+Date.now()">
                     </div>
                 </div>
 
-                <button type="submit" class="btn-primary btn-block">登 录</button>
+                <button type="submit" class="btn-primary btn-block"><?= e(t('登 录')) ?></button>
             </form>
 
             <?php if ($openRegister): ?>
                 <div class="auth-alt">
-                    <span>还没有账号？</span>
-                    <a href="register.php">立即注册</a>
+                    <span><?= e(t('还没有账号？')) ?></span>
+                    <a href="register.php"><?= e(t('立即注册')) ?></a>
                 </div>
             <?php endif; ?>
         </section>
 
         <div class="auth-back">
-            <a href="../index.php">← 返回前台导航页</a>
+            <a href="../index.php">← <?= e(t('返回前台导航页')) ?></a>
         </div>
     </main>
 
