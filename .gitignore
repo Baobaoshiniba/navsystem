@@ -4,6 +4,8 @@
 # Local databases, backups and runtime files stay on each machine.
 data/*
 !data/demo.json
+# 例外：data/.htaccess 是访问拦截规则，必须随仓库分发
+!data/.htaccess
 
 # 日志
 *.log

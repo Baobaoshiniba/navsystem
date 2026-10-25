@@ -1,0 +1,80 @@
+name: Tests
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# 同一个分支上的连续推送只保留最新一次，省掉无意义的排队
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+        # 本地开发环境是 8.0.30，这里覆盖 8.0（下限）、8.2（常用）、8.4（最新）三档，
+        # 防止哪天不小心用了更高版本才有的语法而本地没发现。
+        php: ['8.0', '8.2', '8.4']
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_sqlite, gd, openssl, mbstring
+          coverage: none
+          tools: none
+
+      - name: 准备 Node（JS 语法检查与语言切换测试）
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 确认运行环境齐备
+        # 注意：不要用 extension_loaded('pdo_sqlite') 判定 —— 部分 PHP 构建把 sqlite 驱动
+        # 静态编译进去，此时 extension_loaded 返回 false 但驱动其实可用，会误报。
+        # 以 PDO::getAvailableDrivers() 为准。
+        run: |
+          php -r '
+          $drivers = PDO::getAvailableDrivers();
+          if (!in_array("sqlite", $drivers, true)) { fwrite(STDERR, "PDO 缺少 sqlite 驱动，现有: " . implode(",", $drivers) . "\n"); exit(1); }
+          foreach (["openssl", "gd"] as $e) {
+              if (!extension_loaded($e)) { fwrite(STDERR, "缺少扩展: $e\n"); exit(1); }
+          }
+          echo "环境齐备：PDO 驱动 " . implode(",", $drivers) . "\n";
+          '
+
+      - name: 运行自检
+        run: ./tests/run.sh
+
+  # 验证 run.sh 在没有 Node 的机器上仍能跑通：Node 只是可选依赖（JS 语法检查与
+  # 语言切换测试），没有它应当跳过而不是失败。runner 自带 Node，所以这里从 PATH 里
+  # 把它摘掉来模拟——直接跑是测不到降级路径的。
+  test-without-node:
+    name: PHP 8.2（PATH 中隐藏 Node）
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_sqlite, gd, openssl, mbstring
+          coverage: none
+
+      - name: 运行自检（模拟无 Node）
+        run: |
+          export PATH="$(dirname "$(command -v php)"):/usr/bin:/bin"
+          command -v node && { echo "Node 未被隐藏，这条 job 失去意义"; exit 1; } || true
+          ./tests/run.sh
