@@ -1,24 +1,25 @@
 /* A: quiet, consistent workspace. Existing component structure stays compatible. */
 :root {
     color-scheme: light;
-    --bg:#f8fafc; --bg-soft:#f1f5f9; --card:#fff; --card-solid:#fff; --card-hover:#fff;
-    --text:#0f172a; --text-2:#475569; --text-3:#64748b;
-    --border:#e2e8f0; --border-strong:#cbd5e1; --primary:#2563eb; --primary-strong:#1d4ed8;
-    --accent:#2563eb; --accent-soft:#eff6ff; --success:#15803d; --danger:#b91c1c; --danger-soft:#fef2f2; --warn:#92400e;
-    --grad:#2563eb; --grad-soft:#eff6ff; --bg-grid:transparent; --glow-primary:transparent; --glow-accent:transparent;
+    --bg:#f3f1eb; --bg-soft:#ebe9e2; --card:#faf9f6; --card-solid:#faf9f6; --card-hover:#fffefa;
+    --text:#29313d; --text-2:#505a68; --text-3:#6d7682;
+    --border:#dfddd5; --border-strong:#cbc8be; --primary:#2563eb; --primary-strong:#1d4ed8;
+    --accent:#2563eb; --accent-soft:#e7edf6; --success:#15803d; --danger:#b91c1c; --danger-soft:#fef2f2; --warn:#92400e;
+    --grad:#2563eb; --grad-soft:#e7edf6; --bg-grid:transparent; --glow-primary:transparent; --glow-accent:transparent;
     --shadow-sm:0 1px 2px #0f172a05; --shadow-md:0 3px 12px #0f172a06; --shadow-lg:0 12px 40px #0f172a12;
     --ring:0 0 0 3px #2563eb25; --r-sm:6px; --r-md:8px; --r-lg:10px; --r-xl:12px;
     --font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
 }
 html[data-theme="dark"] {
-    color-scheme:dark; --bg:#111827; --bg-soft:#1e293b; --card:#172033; --card-solid:#172033; --card-hover:#1e293b;
+    color-scheme:dark; --bg:#171a20; --bg-soft:#20242c; --card:#1c2028; --card-solid:#1c2028; --card-hover:#222731;
     --text:#f1f5f9; --text-2:#cbd5e1; --text-3:#94a3b8; --border:#2b384d; --border-strong:#475569;
-    --primary:#60a5fa; --primary-strong:#93c5fd; --accent:#60a5fa; --accent-soft:#203454;
-    --grad:#2563eb; --grad-soft:#203454; --danger:#fca5a5; --danger-soft:#3c2530; --success:#86efac;
+    --primary:#60a5fa; --primary-strong:#93c5fd; --accent:#75a9ee; --accent-soft:#27364b;
+    --grad:#2563eb; --grad-soft:#27364b; --danger:#fca5a5; --danger-soft:#3c2530; --success:#86efac;
     --bg-grid:transparent; --glow-primary:transparent; --glow-accent:transparent;
     --shadow-sm:0 1px 2px #00000012; --shadow-md:0 3px 12px #00000012; --shadow-lg:0 12px 40px #00000030;
 }
-body { background:var(--bg); font-size:14px; line-height:1.6; }
+body { background-color:var(--bg); background-image:url("../background/workspace-shapes-light.svg"); background-repeat:repeat; background-size:1180px 860px; font-size:14px; line-height:1.6; }
+html[data-theme="dark"] body { background-image:url("../background/workspace-shapes-dark.svg"); }
 body::before, body::after, .hero::before, .hero::after, .link-card::before, .link-card::after,
 .auth-body::before, .auth-body::after, .auth-brand-grid, .auth-brand-glow { display:none; }
 a { text-decoration:none; }
@@ -159,7 +160,7 @@ button:active,.btn-primary:active,.btn-ghost:active,.btn-danger:active,.admin-li
 .vault-gate-ico .ui-icon { width:26px; height:26px; }
 .vault-timer { background:var(--accent-soft); color:var(--primary); border:0; border-radius:6px; }
 /* Authentication shares the same surfaces and type scale. */
-.auth-body { background:var(--bg); }
+.auth-body { background-color:var(--bg); }
 .auth-shell { width:min(1050px,calc(100% - 64px)); gap:64px; min-height:100vh; align-items:center; padding:48px 0; }
 .auth-brand { background:transparent; border:0; border-radius:0; box-shadow:none; }
 .auth-brand-inner { padding:0; color:var(--text); }
