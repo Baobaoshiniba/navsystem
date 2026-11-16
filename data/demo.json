@@ -27,6 +27,182 @@
         "description": "用任务看板跟踪待办事项与小组进度。",
         "description_en": "Track tasks and team progress with a shared board.",
         "icon": "📋"
+      },
+      {
+        "title": "Notion",
+        "title_en": "Notion",
+        "url": "https://www.notion.so/",
+        "description": "集中整理小组文档、会议记录与项目资料。",
+        "description_en": "Keep team documents, meeting notes and project materials together.",
+        "icon": "📝"
+      },
+      {
+        "title": "Slack",
+        "title_en": "Slack",
+        "url": "https://slack.com/",
+        "description": "按频道讨论任务，集中查看小组消息与文件。",
+        "description_en": "Discuss tasks in channels and keep team messages and files together.",
+        "icon": "💬"
+      },
+      {
+        "title": "Microsoft Teams",
+        "title_en": "Microsoft Teams",
+        "url": "https://www.microsoft.com/en-us/microsoft-teams/group-chat-software",
+        "description": "进行小组聊天、线上会议并共享资料。",
+        "description_en": "Chat, meet online and share materials with your team.",
+        "icon": "👥"
+      },
+      {
+        "title": "Google 文档",
+        "title_en": "Google Docs",
+        "url": "https://docs.google.com/",
+        "description": "在线共同编辑报告、会议纪要与作业文档。",
+        "description_en": "Create and edit reports, meeting notes and coursework together.",
+        "icon": "📝"
+      },
+      {
+        "title": "Google 日历",
+        "title_en": "Google Calendar",
+        "url": "https://calendar.google.com/",
+        "description": "安排会议、设置提醒并共享小组日程。",
+        "description_en": "Schedule meetings, set reminders and share team calendars.",
+        "icon": "📅"
+      },
+      {
+        "title": "Google Meet",
+        "title_en": "Google Meet",
+        "url": "https://meet.google.com/",
+        "description": "通过视频会议进行远程讨论与项目同步。",
+        "description_en": "Meet by video for remote discussions and project check-ins.",
+        "icon": "🎥"
+      },
+      {
+        "title": "OneDrive",
+        "title_en": "Microsoft OneDrive",
+        "url": "https://www.microsoft.com/en-us/microsoft-365/onedrive/online-cloud-storage",
+        "description": "在线保存、同步并共享小组文件。",
+        "description_en": "Store, sync and share team files online.",
+        "icon": "☁️"
+      },
+      {
+        "title": "Microsoft Planner",
+        "title_en": "Microsoft Planner",
+        "url": "https://www.microsoft.com/en-us/microsoft-365/planner/microsoft-planner",
+        "description": "用共享计划和任务看板跟踪团队工作。",
+        "description_en": "Organize team work with shared plans and task boards.",
+        "icon": "📋"
+      },
+      {
+        "title": "OneNote",
+        "title_en": "Microsoft OneNote",
+        "url": "https://www.onenote.com/",
+        "description": "收集课堂笔记、研究想法与项目资料。",
+        "description_en": "Collect class notes, research ideas and project materials.",
+        "icon": "📒"
+      },
+      {
+        "title": "Zoom",
+        "title_en": "Zoom",
+        "url": "https://zoom.us/",
+        "description": "召开线上会议并进行小组演示。",
+        "description_en": "Host online meetings and team presentations.",
+        "icon": "🎥"
+      },
+      {
+        "title": "Discord",
+        "title_en": "Discord",
+        "url": "https://discord.com/",
+        "description": "通过文字、语音频道进行小组交流。",
+        "description_en": "Communicate through team text and voice channels.",
+        "icon": "💬"
+      },
+      {
+        "title": "Asana",
+        "title_en": "Asana",
+        "url": "https://asana.com/",
+        "description": "分配任务、设定截止日期并查看项目进度。",
+        "description_en": "Assign tasks, set due dates and track project progress.",
+        "icon": "✅"
+      },
+      {
+        "title": "Jira",
+        "title_en": "Jira",
+        "url": "https://www.atlassian.com/software/jira",
+        "description": "规划任务、管理待办并跟踪迭代进度。",
+        "description_en": "Plan work, manage issues and track sprint progress.",
+        "icon": "🟦"
+      },
+      {
+        "title": "Confluence",
+        "title_en": "Confluence",
+        "url": "https://www.atlassian.com/software/confluence",
+        "description": "编写项目说明、会议记录与团队知识文档。",
+        "description_en": "Write project guides, meeting notes and team knowledge pages.",
+        "icon": "📚"
+      },
+      {
+        "title": "Miro",
+        "title_en": "Miro",
+        "url": "https://miro.com/",
+        "description": "在共享白板上整理思路、流程和头脑风暴。",
+        "description_en": "Map ideas, workflows and brainstorming on a shared board.",
+        "icon": "🧠"
+      },
+      {
+        "title": "Figma",
+        "title_en": "Figma",
+        "url": "https://www.figma.com/",
+        "description": "共同制作界面原型并收集设计反馈。",
+        "description_en": "Create interface prototypes together and collect design feedback.",
+        "icon": "🎨"
+      },
+      {
+        "title": "Airtable",
+        "title_en": "Airtable",
+        "url": "https://www.airtable.com/",
+        "description": "用可视化表格整理项目任务与资料清单。",
+        "description_en": "Organize project tasks and resource lists in visual tables.",
+        "icon": "🗂️"
+      },
+      {
+        "title": "Dropbox",
+        "title_en": "Dropbox",
+        "url": "https://www.dropbox.com/",
+        "description": "同步文件并与小组成员共享资料。",
+        "description_en": "Sync files and share materials with teammates.",
+        "icon": "📦"
+      },
+      {
+        "title": "Basecamp",
+        "title_en": "Basecamp",
+        "url": "https://basecamp.com/",
+        "description": "在一个空间中管理项目消息、任务和文件。",
+        "description_en": "Manage project messages, tasks and files in one workspace.",
+        "icon": "🏕️"
+      },
+      {
+        "title": "monday.com",
+        "title_en": "monday.com",
+        "url": "https://monday.com/",
+        "description": "创建共享工作流程并查看团队任务状态。",
+        "description_en": "Build shared workflows and see team task status.",
+        "icon": "🟣"
+      },
+      {
+        "title": "ClickUp",
+        "title_en": "ClickUp",
+        "url": "https://clickup.com/",
+        "description": "集中管理任务、文档与项目进度。",
+        "description_en": "Manage tasks, documents and project progress together.",
+        "icon": "🎯"
+      },
+      {
+        "title": "Linear",
+        "title_en": "Linear",
+        "url": "https://linear.app/",
+        "description": "规划项目工作并跟踪问题与任务状态。",
+        "description_en": "Plan project work and track issues and task status.",
+        "icon": "📐"
       }
     ]
   },
@@ -58,6 +234,182 @@
         "description": "查询 HTML、CSS 与 JavaScript 开发文档。",
         "description_en": "Find documentation for HTML, CSS and JavaScript.",
         "icon": "🌐"
+      },
+      {
+        "title": "Visual Studio Code",
+        "title_en": "Visual Studio Code",
+        "url": "https://code.visualstudio.com/",
+        "description": "使用轻量代码编辑器编写、调试和管理项目。",
+        "description_en": "Write, debug and manage projects in a lightweight code editor.",
+        "icon": "🧩"
+      },
+      {
+        "title": "GitLab",
+        "title_en": "GitLab",
+        "url": "https://about.gitlab.com/",
+        "description": "托管代码仓库，并协作跟踪提交与问题。",
+        "description_en": "Host repositories and collaborate on commits and issues.",
+        "icon": "🦊"
+      },
+      {
+        "title": "Composer",
+        "title_en": "Composer",
+        "url": "https://getcomposer.org/",
+        "description": "管理 PHP 项目的依赖包与安装配置。",
+        "description_en": "Manage dependencies and installation for PHP projects.",
+        "icon": "📦"
+      },
+      {
+        "title": "Node.js",
+        "title_en": "Node.js",
+        "url": "https://nodejs.org/",
+        "description": "查看 JavaScript 运行时与开发资源。",
+        "description_en": "Explore the JavaScript runtime and developer resources.",
+        "icon": "🟢"
+      },
+      {
+        "title": "Python",
+        "title_en": "Python",
+        "url": "https://www.python.org/",
+        "description": "查阅 Python 语言、下载与官方文档入口。",
+        "description_en": "Find Python language information, downloads and documentation.",
+        "icon": "🐍"
+      },
+      {
+        "title": "Laravel",
+        "title_en": "Laravel",
+        "url": "https://laravel.com/",
+        "description": "查阅 PHP Web 应用框架及其开发文档。",
+        "description_en": "Explore the PHP web application framework and its documentation.",
+        "icon": "🔺"
+      },
+      {
+        "title": "MySQL",
+        "title_en": "MySQL",
+        "url": "https://www.mysql.com/",
+        "description": "查看 MySQL 关系型数据库产品与资料。",
+        "description_en": "Explore the MySQL relational database and resources.",
+        "icon": "🐬"
+      },
+      {
+        "title": "SQLite",
+        "title_en": "SQLite",
+        "url": "https://sqlite.org/",
+        "description": "查阅轻量级嵌入式 SQL 数据库官方资料。",
+        "description_en": "Read official resources for the lightweight embedded SQL database.",
+        "icon": "🗃️"
+      },
+      {
+        "title": "Docker",
+        "title_en": "Docker",
+        "url": "https://www.docker.com/",
+        "description": "了解容器化开发、构建与部署工具。",
+        "description_en": "Explore tools for containerized development, builds and deployment.",
+        "icon": "🐳"
+      },
+      {
+        "title": "Git",
+        "title_en": "Git",
+        "url": "https://git-scm.com/",
+        "description": "查阅分布式版本控制系统与使用文档。",
+        "description_en": "Learn about the distributed version control system and its docs.",
+        "icon": "🌿"
+      },
+      {
+        "title": "npm",
+        "title_en": "npm",
+        "url": "https://www.npmjs.com/",
+        "description": "搜索并管理 JavaScript 软件包。",
+        "description_en": "Discover and manage JavaScript packages.",
+        "icon": "📦"
+      },
+      {
+        "title": "Vite",
+        "title_en": "Vite",
+        "url": "https://vite.dev/",
+        "description": "使用现代前端开发服务器与构建工具。",
+        "description_en": "Use a modern frontend development server and build tool.",
+        "icon": "⚡"
+      },
+      {
+        "title": "React",
+        "title_en": "React",
+        "url": "https://react.dev/",
+        "description": "查阅 React 用户界面库官方文档。",
+        "description_en": "Read the official documentation for the React UI library.",
+        "icon": "⚛️"
+      },
+      {
+        "title": "Vue.js",
+        "title_en": "Vue.js",
+        "url": "https://vuejs.org/",
+        "description": "查阅渐进式 JavaScript 框架官方文档。",
+        "description_en": "Read the official documentation for the progressive JavaScript framework.",
+        "icon": "💚"
+      },
+      {
+        "title": "TypeScript",
+        "title_en": "TypeScript",
+        "url": "https://www.typescriptlang.org/",
+        "description": "查看 JavaScript 类型语法及官方学习资料。",
+        "description_en": "Explore JavaScript types and official learning resources.",
+        "icon": "🔷"
+      },
+      {
+        "title": "Stack Overflow",
+        "title_en": "Stack Overflow",
+        "url": "https://stackoverflow.com/",
+        "description": "搜索开发问题与社区解答。",
+        "description_en": "Search programming questions and community answers.",
+        "icon": "💡"
+      },
+      {
+        "title": "GitHub Pages",
+        "title_en": "GitHub Pages",
+        "url": "https://pages.github.com/",
+        "description": "了解从 GitHub 仓库发布静态网站的方法。",
+        "description_en": "Learn how to publish static websites from GitHub repositories.",
+        "icon": "🌐"
+      },
+      {
+        "title": "Cloudflare",
+        "title_en": "Cloudflare",
+        "url": "https://www.cloudflare.com/",
+        "description": "了解网络安全、CDN 与开发者平台服务。",
+        "description_en": "Explore network security, CDN and developer platform services.",
+        "icon": "🟠"
+      },
+      {
+        "title": "Netlify",
+        "title_en": "Netlify",
+        "url": "https://www.netlify.com/",
+        "description": "了解网站构建、托管与部署平台。",
+        "description_en": "Explore a platform for building, hosting and deploying websites.",
+        "icon": "🌱"
+      },
+      {
+        "title": "Vercel",
+        "title_en": "Vercel",
+        "url": "https://vercel.com/",
+        "description": "了解前端项目部署与 Web 开发平台。",
+        "description_en": "Explore a web development platform for deploying frontend projects.",
+        "icon": "▲"
+      },
+      {
+        "title": "PHPStan",
+        "title_en": "PHPStan",
+        "url": "https://phpstan.org/",
+        "description": "使用 PHP 静态分析发现潜在代码问题。",
+        "description_en": "Find potential code issues with PHP static analysis.",
+        "icon": "🔎"
+      },
+      {
+        "title": "Redis",
+        "title_en": "Redis",
+        "url": "https://redis.io/",
+        "description": "查阅 Redis 数据平台及相关开发文档。",
+        "description_en": "Explore the Redis data platform and developer documentation.",
+        "icon": "🔴"
       }
     ]
   },
@@ -89,6 +441,182 @@
         "description": "查看页面性能分析与体验改进建议。",
         "description_en": "Review page performance and improvement suggestions.",
         "icon": "⚡"
+      },
+      {
+        "title": "Playwright",
+        "title_en": "Playwright",
+        "url": "https://playwright.dev/",
+        "description": "编写并运行浏览器端端到端测试。",
+        "description_en": "Write and run end-to-end tests in real browsers.",
+        "icon": "🎭"
+      },
+      {
+        "title": "PHPUnit",
+        "title_en": "PHPUnit",
+        "url": "https://phpunit.de/",
+        "description": "为 PHP 项目编写和运行自动化测试。",
+        "description_en": "Write and run automated tests for PHP projects.",
+        "icon": "🧪"
+      },
+      {
+        "title": "Can I use",
+        "title_en": "Can I use",
+        "url": "https://caniuse.com/",
+        "description": "查询浏览器对常见 Web 功能的支持情况。",
+        "description_en": "Check browser support for common web platform features.",
+        "icon": "🌍"
+      },
+      {
+        "title": "Cypress",
+        "title_en": "Cypress",
+        "url": "https://www.cypress.io/",
+        "description": "编写并运行 Web 应用端到端测试。",
+        "description_en": "Write and run end-to-end tests for web applications.",
+        "icon": "🌲"
+      },
+      {
+        "title": "Selenium",
+        "title_en": "Selenium",
+        "url": "https://www.selenium.dev/",
+        "description": "使用浏览器自动化工具测试 Web 应用。",
+        "description_en": "Test web applications with browser automation tools.",
+        "icon": "🧪"
+      },
+      {
+        "title": "Jest",
+        "title_en": "Jest",
+        "url": "https://jestjs.io/",
+        "description": "运行 JavaScript 测试并查看测试结果。",
+        "description_en": "Run JavaScript tests and review their results.",
+        "icon": "🃏"
+      },
+      {
+        "title": "Vitest",
+        "title_en": "Vitest",
+        "url": "https://vitest.dev/",
+        "description": "为 Vite 项目运行快速单元测试。",
+        "description_en": "Run fast unit tests for Vite projects.",
+        "icon": "⚡"
+      },
+      {
+        "title": "ESLint",
+        "title_en": "ESLint",
+        "url": "https://eslint.org/",
+        "description": "检查 JavaScript 与 TypeScript 代码规范问题。",
+        "description_en": "Find code quality issues in JavaScript and TypeScript.",
+        "icon": "🧹"
+      },
+      {
+        "title": "SonarQube",
+        "title_en": "SonarQube",
+        "url": "https://www.sonarsource.com/products/sonarqube/",
+        "description": "检查代码质量与常见安全问题。",
+        "description_en": "Inspect code quality and common security issues.",
+        "icon": "🔍"
+      },
+      {
+        "title": "OWASP ZAP",
+        "title_en": "OWASP ZAP",
+        "url": "https://www.zaproxy.org/",
+        "description": "学习并执行 Web 应用安全测试。",
+        "description_en": "Learn and perform security testing for web applications.",
+        "icon": "🛡️"
+      },
+      {
+        "title": "Lighthouse",
+        "title_en": "Lighthouse",
+        "url": "https://developer.chrome.com/docs/lighthouse/overview/",
+        "description": "审查网页性能、可访问性与最佳实践。",
+        "description_en": "Audit web performance, accessibility and best practices.",
+        "icon": "💡"
+      },
+      {
+        "title": "WAVE",
+        "title_en": "WAVE Web Accessibility",
+        "url": "https://wave.webaim.org/",
+        "description": "检查网页的可访问性问题与改进建议。",
+        "description_en": "Check web pages for accessibility issues and suggestions.",
+        "icon": "♿"
+      },
+      {
+        "title": "W3C CSS Validator",
+        "title_en": "W3C CSS Validator",
+        "url": "https://jigsaw.w3.org/css-validator/",
+        "description": "验证样式表中的 CSS 语法问题。",
+        "description_en": "Validate CSS syntax in stylesheets.",
+        "icon": "✅"
+      },
+      {
+        "title": "WebPageTest",
+        "title_en": "WebPageTest",
+        "url": "https://www.webpagetest.org/",
+        "description": "测量网页加载表现并分析性能瓶颈。",
+        "description_en": "Measure page loading behavior and analyze performance bottlenecks.",
+        "icon": "⏱️"
+      },
+      {
+        "title": "BrowserStack",
+        "title_en": "BrowserStack",
+        "url": "https://www.browserstack.com/",
+        "description": "在不同浏览器和设备环境中检查网页。",
+        "description_en": "Check websites across different browsers and devices.",
+        "icon": "🌍"
+      },
+      {
+        "title": "LambdaTest",
+        "title_en": "LambdaTest",
+        "url": "https://www.lambdatest.com/",
+        "description": "跨浏览器测试网页与 Web 应用。",
+        "description_en": "Test websites and web apps across browsers.",
+        "icon": "🧪"
+      },
+      {
+        "title": "Swagger Editor",
+        "title_en": "Swagger Editor",
+        "url": "https://editor.swagger.io/",
+        "description": "编写和检查 OpenAPI 接口描述文档。",
+        "description_en": "Write and validate OpenAPI descriptions for APIs.",
+        "icon": "📑"
+      },
+      {
+        "title": "Insomnia",
+        "title_en": "Insomnia",
+        "url": "https://insomnia.rest/",
+        "description": "发送 API 请求并检查响应结果。",
+        "description_en": "Send API requests and inspect responses.",
+        "icon": "🌙"
+      },
+      {
+        "title": "JSONLint",
+        "title_en": "JSONLint",
+        "url": "https://jsonlint.com/",
+        "description": "检查 JSON 格式是否有效。",
+        "description_en": "Check whether JSON is valid.",
+        "icon": "{}"
+      },
+      {
+        "title": "RegExr",
+        "title_en": "RegExr",
+        "url": "https://regexr.com/",
+        "description": "编写和测试正则表达式。",
+        "description_en": "Write and test regular expressions.",
+        "icon": "🔣"
+      },
+      {
+        "title": "axe DevTools",
+        "title_en": "axe DevTools",
+        "url": "https://www.deque.com/axe/devtools/",
+        "description": "辅助检查网页可访问性问题。",
+        "description_en": "Help identify accessibility issues on web pages.",
+        "icon": "♿"
+      },
+      {
+        "title": "Accessibility Insights",
+        "title_en": "Accessibility Insights",
+        "url": "https://accessibilityinsights.io/",
+        "description": "按照检查流程评估 Web 可访问性。",
+        "description_en": "Evaluate web accessibility with guided checks.",
+        "icon": "🧭"
       }
     ]
   },
@@ -120,6 +648,182 @@
         "description": "绘制系统架构图、流程图与数据库关系图。",
         "description_en": "Draw system architecture, workflow and database diagrams.",
         "icon": "🗺️"
+      },
+      {
+        "title": "Crossref Metadata Search",
+        "title_en": "Crossref Metadata Search",
+        "url": "https://search.crossref.org/",
+        "description": "按标题、作者或 DOI 查找论文与出版物信息。",
+        "description_en": "Find publication metadata by title, author or DOI.",
+        "icon": "🔎"
+      },
+      {
+        "title": "OpenAlex",
+        "title_en": "OpenAlex",
+        "url": "https://openalex.org/",
+        "description": "检索学术作品、作者、机构与研究主题。",
+        "description_en": "Explore scholarly works, authors, institutions and topics.",
+        "icon": "📚"
+      },
+      {
+        "title": "Overleaf",
+        "title_en": "Overleaf",
+        "url": "https://www.overleaf.com/",
+        "description": "在线协作编写和排版课程报告与论文。",
+        "description_en": "Write and typeset coursework reports and papers collaboratively online.",
+        "icon": "✍️"
+      },
+      {
+        "title": "arXiv",
+        "title_en": "arXiv",
+        "url": "https://arxiv.org/",
+        "description": "浏览数学、计算机等领域的学术预印本。",
+        "description_en": "Browse research preprints in fields including math and computer science.",
+        "icon": "📄"
+      },
+      {
+        "title": "Semantic Scholar",
+        "title_en": "Semantic Scholar",
+        "url": "https://www.semanticscholar.org/",
+        "description": "搜索学术论文并查看研究关联信息。",
+        "description_en": "Search scholarly papers and explore research connections.",
+        "icon": "🧠"
+      },
+      {
+        "title": "PubMed",
+        "title_en": "PubMed",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/",
+        "description": "检索生物医学与生命科学文献。",
+        "description_en": "Search biomedical and life sciences literature.",
+        "icon": "🧬"
+      },
+      {
+        "title": "DOAJ",
+        "title_en": "Directory of Open Access Journals",
+        "url": "https://doaj.org/",
+        "description": "查找开放获取期刊与学术文章。",
+        "description_en": "Find open access journals and scholarly articles.",
+        "icon": "📚"
+      },
+      {
+        "title": "CORE",
+        "title_en": "CORE",
+        "url": "https://core.ac.uk/",
+        "description": "搜索开放获取研究论文与全文资料。",
+        "description_en": "Search open access research papers and full texts.",
+        "icon": "🔓"
+      },
+      {
+        "title": "OpenAIRE Explore",
+        "title_en": "OpenAIRE Explore",
+        "url": "https://explore.openaire.eu/",
+        "description": "发现欧洲及全球开放科研成果与数据。",
+        "description_en": "Discover open research outputs and data.",
+        "icon": "🌐"
+      },
+      {
+        "title": "BASE",
+        "title_en": "Bielefeld Academic Search Engine",
+        "url": "https://www.base-search.net/",
+        "description": "跨学术资料库检索研究文献。",
+        "description_en": "Search research literature across academic repositories.",
+        "icon": "🔎"
+      },
+      {
+        "title": "ORCID",
+        "title_en": "ORCID",
+        "url": "https://orcid.org/",
+        "description": "创建并管理研究人员的学术身份标识。",
+        "description_en": "Create and manage a persistent researcher identifier.",
+        "icon": "🪪"
+      },
+      {
+        "title": "Zenodo",
+        "title_en": "Zenodo",
+        "url": "https://zenodo.org/",
+        "description": "存储和分享研究数据、论文与软件成果。",
+        "description_en": "Share research data, papers and software outputs.",
+        "icon": "📦"
+      },
+      {
+        "title": "Figshare",
+        "title_en": "Figshare",
+        "url": "https://figshare.com/",
+        "description": "发布并分享研究数据与学术材料。",
+        "description_en": "Publish and share research data and academic materials.",
+        "icon": "📊"
+      },
+      {
+        "title": "OSF",
+        "title_en": "Open Science Framework",
+        "url": "https://osf.io/",
+        "description": "组织项目文件、研究流程与协作资料。",
+        "description_en": "Organize project files, research workflows and collaboration.",
+        "icon": "🧪"
+      },
+      {
+        "title": "Google 图书",
+        "title_en": "Google Books",
+        "url": "https://books.google.com/",
+        "description": "搜索书籍并查找相关出版信息。",
+        "description_en": "Search books and find publication information.",
+        "icon": "📖"
+      },
+      {
+        "title": "Internet Archive",
+        "title_en": "Internet Archive",
+        "url": "https://archive.org/",
+        "description": "查找可访问的数字书籍、网页与多媒体资料。",
+        "description_en": "Find accessible digital books, web pages and media.",
+        "icon": "🏛️"
+      },
+      {
+        "title": "Connected Papers",
+        "title_en": "Connected Papers",
+        "url": "https://www.connectedpapers.com/",
+        "description": "通过论文关联图探索相关研究。",
+        "description_en": "Explore related research through paper connection graphs.",
+        "icon": "🕸️"
+      },
+      {
+        "title": "ResearchRabbit",
+        "title_en": "ResearchRabbit",
+        "url": "https://www.researchrabbit.ai/",
+        "description": "发现相关论文并整理文献阅读线索。",
+        "description_en": "Discover related papers and organize literature leads.",
+        "icon": "🐇"
+      },
+      {
+        "title": "Mendeley",
+        "title_en": "Mendeley",
+        "url": "https://www.mendeley.com/",
+        "description": "整理参考文献并管理研究资料。",
+        "description_en": "Organize references and manage research materials.",
+        "icon": "📚"
+      },
+      {
+        "title": "Unpaywall",
+        "title_en": "Unpaywall",
+        "url": "https://unpaywall.org/",
+        "description": "查找合法开放获取的学术论文版本。",
+        "description_en": "Find legal open access versions of scholarly articles.",
+        "icon": "🔓"
+      },
+      {
+        "title": "Open Library",
+        "title_en": "Open Library",
+        "url": "https://openlibrary.org/",
+        "description": "检索开放图书目录与数字借阅资源。",
+        "description_en": "Search an open book catalog and digital lending resources.",
+        "icon": "📚"
+      },
+      {
+        "title": "The Lens",
+        "title_en": "The Lens",
+        "url": "https://www.lens.org/",
+        "description": "检索学术论文与专利信息。",
+        "description_en": "Search scholarly works and patent information.",
+        "icon": "🔬"
       }
     ]
   }

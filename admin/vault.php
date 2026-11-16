@@ -208,6 +208,7 @@ if (is_post()) {
 vault_touch();
 
 $masterSet = vault_master_is_set();
+$demoMasterActive = $masterSet && vault_verify_master('12345678');
 $unlocked  = $masterSet && vault_is_unlocked();
 if ($unlocked) {
     $key = vault_session_key();
@@ -255,6 +256,14 @@ admin_header(t('密码保险箱'), 'vault');
     <?php endif; ?>
 </div>
 
+<div class="vault-demo-note" role="note">
+    <span class="vault-demo-note-mark" aria-hidden="true">i</span>
+    <div><strong><?= e(t('课堂测试提示')) ?></strong>
+        <p><?= e(t('请只使用虚构测试凭据，不要录入真实账号或密码。测试样例只填入表单，点击保存后才会加密存入。')) ?></p>
+        <p class="vault-demo-password"><?= e(t('恢复完整演示环境后，保险箱主密码为')) ?> <code>12345678</code><?= $demoMasterActive ? ' · ' . e(t('当前已生效')) : (!$masterSet ? ' · ' . e(t('首次设置表单已预填')) : ' · ' . e(t('当前密码不同；恢复演示会清空旧条目并启用此密码'))) ?></p>
+    </div>
+</div>
+
 <?php if (!$masterSet): /* ============ 一、首次设置主密码 ============ */ ?>
 
     <section class="panel glass vault-gate">
@@ -276,7 +285,7 @@ admin_header(t('密码保险箱'), 'vault');
                 <div class="vault-input-group">
                     <input class="form-input" type="password" id="vaultMaster1" name="master_password"
                            minlength="<?= VAULT_MIN_MASTER_LEN ?>" maxlength="200" required
-                           autocomplete="new-password" placeholder="<?= e(t('至少')) ?> <?= VAULT_MIN_MASTER_LEN ?> <?= e(t('位')) ?>">
+                           autocomplete="new-password" value="12345678" placeholder="<?= e(t('至少')) ?> <?= VAULT_MIN_MASTER_LEN ?> <?= e(t('位')) ?>">
                     <button type="button" class="mini-btn" data-vault-toggle="vaultMaster1" aria-pressed="false"><?= ui_icon('eye') ?><span data-toggle-label><?= e(t('显示')) ?></span></button>
                 </div>
                 <div class="vault-strength" data-vault-strength="vaultMaster1" data-level="0">
@@ -290,7 +299,7 @@ admin_header(t('密码保险箱'), 'vault');
                 <div class="vault-input-group">
                     <input class="form-input" type="password" id="vaultMaster2" name="master_password2"
                            minlength="<?= VAULT_MIN_MASTER_LEN ?>" maxlength="200" required
-                           autocomplete="new-password" placeholder="<?= e(t('再次输入主密码')) ?>">
+                           autocomplete="new-password" value="12345678" placeholder="<?= e(t('再次输入主密码')) ?>">
                     <button type="button" class="mini-btn" data-vault-toggle="vaultMaster2" aria-pressed="false"><?= ui_icon('eye') ?><span data-toggle-label><?= e(t('显示')) ?></span></button>
                 </div>
                 <p class="field-hint"><?= e(t('两次输入需完全一致；主密码不会以任何形式落盘。')) ?></p>
@@ -343,8 +352,13 @@ admin_header(t('密码保险箱'), 'vault');
 
     <div class="two-col two-col-form vault-layout">
         <!-- 左栏：新增 / 编辑表单 -->
-        <section class="panel glass">
-            <h2 class="panel-title"><?= $editing ? ('' . ui_icon('edit') . ' ' . t('编辑条目')) : ('＋ ' . t('新增条目')) ?></h2>
+        <section class="panel glass vault-editor-panel">
+            <div class="vault-form-head">
+                <h2 class="panel-title"><?= $editing ? ('' . ui_icon('edit') . ' ' . t('编辑条目')) : ('＋ ' . t('新增条目')) ?></h2>
+                <?php if (!$editing): ?>
+                    <button type="button" class="btn-ghost btn-sm" id="vaultFillSample"><?= e(t('填入测试样例')) ?></button>
+                <?php endif; ?>
+            </div>
 
             <form method="post" action="vault.php" class="form-stack" id="vaultItemForm" autocomplete="off"
                   data-unlocked="<?= $unlocked ? '1' : '0' ?>">
@@ -382,7 +396,7 @@ admin_header(t('密码保险箱'), 'vault');
                         <input class="form-input" type="password" id="v-password" name="password" maxlength="200"
                                autocomplete="new-password" placeholder="<?= $editing ? t('留空表示不修改已存密码') : t('留空表示暂不保存密码') ?>">
                         <button type="button" class="mini-btn" data-vault-toggle="v-password" aria-pressed="false"><?= ui_icon('eye') ?><span data-toggle-label><?= e(t('显示')) ?></span></button>
-                        <button type="button" class="mini-btn" id="vaultGenPwd" data-vault-target="v-password">🎲 <?= e(t('生成')) ?></button>
+                        <button type="button" class="mini-btn" id="vaultGenPwd" data-vault-target="v-password"><?= ui_icon('refresh') ?><span><?= e(t('生成')) ?></span></button>
                     </div>
                     <div class="vault-strength" data-vault-strength="v-password" data-level="0">
                         <div class="vs-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -438,7 +452,7 @@ admin_header(t('密码保险箱'), 'vault');
                 <div class="empty-tip">
                     <span class="et-ico"><?= ui_icon('folder') ?></span>
                     <p><strong><?= ($q !== '' || $filterCat !== '') ? t('没有匹配的条目') : t('保险箱还是空的') ?></strong></p>
-                    <p><?= ($q !== '' || $filterCat !== '') ? t('换个关键字或清空筛选再试试。') : t('在左侧填写标题与网址，即可把账号密码加密存入。') ?></p>
+                    <p><?= ($q !== '' || $filterCat !== '') ? t('换个关键字或清空筛选再试试。') : t('可在左侧填入虚构测试样例或自建条目；提交后才会加密保存。') ?></p>
                 </div>
             <?php else: ?>
                 <div class="table-wrap vault-table-wrap">
@@ -648,6 +662,11 @@ admin_header(t('密码保险箱'), 'vault');
         'needAck'          => t('请先勾选「我已了解该操作不可恢复」。'),
         'confirmPrefix'    => t('请输入「'),
         'confirmSuffix'    => t('以确认。'),
+        'sampleReplaceConfirm' => t('填入测试样例会覆盖当前表单内容，是否继续？'),
+        'sampleTitle'      => t('课程邮箱（示例）'),
+        'sampleUsername'   => t('学生演示账号（虚构）'),
+        'sampleCategory'   => t('课程演示'),
+        'sampleNotes'      => t('虚构测试数据：可测试显示、复制、编辑与删除。'),
     ],
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
 </script>

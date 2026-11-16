@@ -204,5 +204,6 @@ html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
         </div>
     </main>
 
+    <?= site_footer_html() ?>
 </div>
 <?php page_footer('../'); ?>

@@ -177,7 +177,36 @@
         refreshStrength(input);
     });
 
-    /* ================= 三、随机强密码生成器 ================= */
+    /* ================= 三、无害 Demo 样例（只填表单，不自动保存） ================= */
+    var sampleBtn = document.getElementById('vaultFillSample');
+    var itemForm = document.getElementById('vaultItemForm');
+    if (sampleBtn && itemForm) {
+        sampleBtn.addEventListener('click', function () {
+            var fields = ['v-title', 'v-url', 'v-username', 'v-password', 'v-category', 'v-notes'];
+            var hasContent = fields.some(function (id) {
+                var field = document.getElementById(id);
+                return field && field.value !== '';
+            });
+            if (hasContent && !window.confirm(T.sampleReplaceConfirm)) return;
+            var sample = {
+                'v-title': T.sampleTitle,
+                'v-url': 'https://example.com/login',
+                'v-username': T.sampleUsername,
+                'v-password': 'DemoPass!2026',
+                'v-category': T.sampleCategory,
+                'v-notes': T.sampleNotes
+            };
+            Object.keys(sample).forEach(function (id) {
+                var field = document.getElementById(id);
+                if (field) {
+                    field.value = sample[id];
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        });
+    }
+
+    /* ================= 四、随机强密码生成器 ================= */
     var genBtn = document.getElementById('vaultGenPwd');
     if (genBtn) {
         genBtn.addEventListener('click', function () {
@@ -222,7 +251,7 @@
         });
     }
 
-    /* ================= 四、解锁倒计时（贴近自动锁定阈值时整页刷新，由服务端判定锁定） ================= */
+    /* ================= 五、解锁倒计时（贴近自动锁定阈值时整页刷新，由服务端判定锁定） ================= */
     var timerEl = document.getElementById('vaultTimer');
     if (timerEl) {
         var remaining = parseInt(timerEl.getAttribute('data-remaining'), 10);
@@ -240,7 +269,7 @@
         window.setInterval(tick, 1000);
     }
 
-    /* ================= 五、重置保险箱模态框 ================= */
+    /* ================= 六、重置保险箱模态框 ================= */
     var backdrop = document.getElementById('vaultResetModal');
     if (backdrop) {
         var form   = document.getElementById('vaultResetForm');

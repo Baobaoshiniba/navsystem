@@ -40,7 +40,7 @@ try {
     $pdo->exec('DELETE FROM links; DELETE FROM categories;');
     seed_demo_data($pdo);
     check((int)$pdo->query('SELECT COUNT(*) FROM categories')->fetchColumn() === 4, 'Expected four demo categories');
-    check((int)$pdo->query('SELECT COUNT(*) FROM links')->fetchColumn() === 12, 'Expected twelve demo links');
+    check((int)$pdo->query('SELECT COUNT(*) FROM links')->fetchColumn() === 100, 'Expected one hundred demo links');
     check((int)$pdo->query("SELECT COUNT(*) FROM links WHERE title_en = '' OR description_en = ''")->fetchColumn() === 0, 'Demo English content missing');
     check((int)$pdo->query('SELECT SUM(click_count) FROM links')->fetchColumn() === 0, 'Demo clicks must start at zero');
     echo 'PASS: ' . locale() . " migration, content fallback, settings, translation and escaping\n";

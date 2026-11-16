@@ -8,9 +8,11 @@
 declare(strict_types=1);
 
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/lib/daily_quote.php';
 
 $db      = db();
 $siteName = setting('site_name');
+$dailyQuote = daily_quote_initial();
 
 // 分类（含各自链接数量）
 $cats = $db->query('
@@ -40,6 +42,27 @@ $totalCategories = count($cats);
 $totalLinks      = count($links);
 $totalClicks     = (int)$db->query('SELECT COALESCE(SUM(click_count), 0) FROM links')->fetchColumn();
 
+// Open the homepage on team collaboration by default; explicit category URLs still take precedence.
+$defaultCategoryId = '';
+foreach ($cats as $category) {
+    if ((string)($category['name'] ?? '') === '小组协作'
+        || strtolower(trim((string)($category['name_en'] ?? ''))) === 'team collaboration') {
+        $defaultCategoryId = (string)(int)$category['id'];
+        break;
+    }
+}
+if ($defaultCategoryId === '' && $cats) $defaultCategoryId = (string)(int)$cats[0]['id'];
+$requestedCategory = isset($_GET['cat']) ? (string)$_GET['cat'] : '';
+$categoryIds = array_map(static fn($category) => (string)(int)$category['id'], $cats);
+$initialCategory = $requestedCategory === 'all' ? 'all'
+    : (in_array($requestedCategory, $categoryIds, true) ? $requestedCategory : $defaultCategoryId);
+$initialCategoryRow = null;
+foreach ($cats as $category) {
+    if ((string)(int)$category['id'] === $initialCategory) { $initialCategoryRow = $category; break; }
+}
+$initialHeading = $initialCategory === 'all' || !$initialCategoryRow
+    ? t('全部资源') : localized_field($initialCategoryRow, 'name');
+
 // 聚合搜索：引擎清单（settings 可配，缺省回退内置默认）与默认选中引擎
 $engines       = search_engines();
 $defaultEngine = default_search_engine_name();
@@ -47,6 +70,12 @@ $defaultEngine = default_search_engine_name();
 page_header(t('导航首页'));
 
 $footerText = setting('footer_text');
+$settingsCache = &raw_setting_cache();
+$contactEmail = trim(array_key_exists('contact_email', $settingsCache)
+    ? (string)$settingsCache['contact_email']
+    : (string)($config['contact_email'] ?? ''));
+if ($contactEmail === '') $contactEmail = (string)($config['contact_email'] ?? 'liu5xin@139.com');
+$contactEmailValid = filter_var($contactEmail, FILTER_VALIDATE_EMAIL) !== false;
 echo '<body class="app-body">';
 
 /* ============ 顶栏 ============ */
@@ -71,115 +100,93 @@ foreach ($engines as $eng) {
         . '</button>';
 }
 
-/* ============ 主视觉区 ============ */
-echo '<section class="hero">
-    <div class="container hero-inner">
-        <div class="hero-copy"><h1 class="hero-title"><span>' . e(setting('site_name')) . '</span></h1>
-        <p class="hero-sub">' . e(setting('site_slogan')) . ('</p></div>
-        <div class="agg-search" role="search" aria-label="' . t('聚合搜索') . '">
-            <div class="engine-strip" id="engineStrip" role="tablist" aria-label="' . t('选择搜索引擎') . '">') . $enginePillsHtml . '</div>
-            <form class="agg-form" id="aggForm" role="search">
-                <span class="agg-icon" aria-hidden="true">' . ui_icon('search') . '</span>
-                <input type="search" id="aggInput" class="agg-input" name="q"
-                       placeholder="' . e(search_input_placeholder($defaultEngine)) . '"
-                       aria-label="' . e(t($defaultEngine)) . (' ' . t('搜索关键词') . '" autocomplete="off" enterkeyhint="search">
-                <button type="submit" class="agg-btn" id="aggBtn">' . t('搜索') . '</button>
-            </form>
-            <div class="agg-tip" id="aggTip" role="status" hidden></div>
-        </div>
-    </div>
-</section>');
+/* ============ 首屏：搜索 + 每日一言 ============ */
+echo '<section class="hero"><h1 class="home-title-sr-only">' . e(setting('site_name')) . '</h1><div class="container hero-inner">';
+echo '<div class="agg-search" aria-label="' . e(t('聚合搜索')) . '">'
+    . '<div class="engine-strip" id="engineStrip" role="tablist" aria-label="' . e(t('选择搜索引擎')) . '">' . $enginePillsHtml . '</div>'
+    . '<form class="agg-form" id="aggForm" role="search">'
+    . '<span class="agg-icon" aria-hidden="true">' . ui_icon('search') . '</span>'
+    . '<input type="search" id="aggInput" class="agg-input" name="q" placeholder="' . e(t('搜索资源名称、网址或分类')) . '"'
+    . ' aria-label="' . e(t('搜索资源名称、网址或分类')) . '" autocomplete="off" enterkeyhint="search">'
+    . '<button type="submit" class="agg-btn" id="aggBtn">' . e(t('网页搜索')) . '</button></form>'
+    . '<div class="agg-tip" id="aggTip" role="status" hidden></div></div>';
+echo '<aside class="daily-quote" id="dailyQuote" aria-label="' . e(t('每日一言')) . '">'
+    . '<span class="daily-quote-mark" aria-hidden="true">“</span>'
+    . '<div class="daily-quote-body"><div class="daily-quote-label">' . e(t('每日一言')) . '</div>'
+    . '<p class="daily-quote-text" id="dailyQuoteText" lang="' . (locale() === 'en' ? 'en' : 'zh-Hans') . '">' . e($dailyQuote['text']) . '</p>'
+    . '<div class="daily-quote-meta" id="dailyQuoteMeta">'
+    . '<span id="dailyQuoteAttribution">' . e($dailyQuote['provider'] === 'team' ? t('小组寄语') : trim((($dailyQuote['from_who'] ?? '') !== '' ? '— ' . $dailyQuote['from_who'] : '') . (($dailyQuote['from_who'] ?? '') !== '' && ($dailyQuote['from'] ?? '') !== '' ? ' · ' : '') . ($dailyQuote['from'] ?? ''))) . '</span>'
+    . '<a id="dailyQuoteSource"' . ($dailyQuote['provider'] === 'team' ? ' hidden' : '') . ' href="' . e($dailyQuote['source_url'] ?? '#') . '" target="_blank" rel="noopener noreferrer">' . e($dailyQuote['provider'] === 'zenquotes' ? t('由 ZenQuotes 提供') : t('由一言提供')) . '</a>'
+    . '</div></div></aside></div></section>';
 
 /* ============ Resource overview ============ */
-echo '<div class="container resources-heading"><h2>' . e(t('全部资源')) . '</h2><p>' . e(t('{categories} 个分类 · {links} 个资源', ['categories' => $totalCategories, 'links' => $totalLinks])) . '</p></div>';
+echo '<div class="container resources-heading"><h2 id="resourcesHeading">' . e($initialHeading) . '</h2><p>' . e(t('{categories} 个分类 · {links} 个资源', ['categories' => $totalCategories, 'links' => $totalLinks])) . '</p></div>';
 
 /* ============ 分类筛选条 ============ */
 if ($cats) {
     echo ('<div class="container filter-bar">
-        <nav class="cat-filter" id="catFilter" aria-label="' . t('按分类筛选导航链接') . '">
-            <button type="button" class="filter-pill is-active" data-cat="all" aria-pressed="true">' . t('全部') . '<span class="filter-badge">') . $totalLinks . '</span></button>';
+        <nav class="cat-filter" id="catFilter" data-default-cat="' . e($defaultCategoryId) . '" data-all-label="' . e(t('全部资源')) . '" aria-label="' . t('按分类筛选导航链接') . '">
+            <button type="button" class="filter-pill' . ($initialCategory === 'all' ? ' is-active' : '') . '" data-cat="all" aria-pressed="' . ($initialCategory === 'all' ? 'true' : 'false') . '">' . t('全部') . '<span class="filter-badge">') . $totalLinks . '</span></button>';
     foreach ($cats as $cat) {
         $cid = (int)$cat['id'];
-        echo '<button type="button" class="filter-pill" data-cat="' . $cid . '" aria-pressed="false">'
+        $isInitialCategory = (string)$cid === $initialCategory;
+        echo '<button type="button" class="filter-pill' . ($isInitialCategory ? ' is-active' : '') . '" data-cat="' . $cid . '" aria-pressed="' . ($isInitialCategory ? 'true' : 'false') . '">'
             . e(localized_field($cat, 'name')) . '<span class="filter-badge">' . (int)$cat['link_count'] . '</span></button>';
     }
     echo '</nav>
     </div>';
 }
 
-/* ============ 导航卡片区 ============ */
+/* ============ 快速启动区：单一资源网格 ============ */
 echo '<main class="container main-area">';
-echo ('<div class="filter-empty is-hidden" id="filterEmptyTip" role="status">' . t('该分类下暂无启用的导航链接') . '</div>');
-foreach ($cats as $cat):
-    $cid = (int)$cat['id'];
-    $hasLinks = isset($grouped[$cid]) && count($grouped[$cid]) > 0;
+echo '<div class="filter-empty is-hidden" id="filterEmptyTip" role="status">' . e(t('没有找到匹配的导航资源')) . '</div>';
+if ($links) {
+    echo '<div class="link-grid" id="resourceGrid">';
+    foreach ($links as $link) {
+        $safeUrl    = e($link['url']);
+        $ext        = preg_match('#^https?://#i', $link['url']) ? ' target="_blank" rel="noopener noreferrer"' : '';
+        $iconUrl    = resource_icon_url($link);
+        $iconLetter = resource_initial($link);
+        $domain     = icon_display_host((string)$link['url']);
+        $catName    = localized_field($link, 'category_name');
+        echo '<a href="' . $safeUrl . '"' . $ext . ' class="link-card"'
+            . ' data-id="' . (int)$link['id'] . '"'
+            . ' data-cat="' . (int)$link['category_id'] . '"'
+            . ' data-name="' . e(localized_field($link, 'title')) . '"'
+            . ' data-desc="' . e(localized_field($link, 'description')) . '"'
+            . ' data-category="' . e($catName) . '"'
+            . ' data-url="' . $safeUrl . '">';
+        echo '<span class="link-card-head">';
+        if ($iconUrl !== '') {
+            echo '<span class="link-icon"><img src="' . e($iconUrl) . '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>';
+        } else {
+            echo '<span class="link-icon link-icon-fallback"><span class="link-letter">' . e($iconLetter) . '</span></span>';
+        }
+        echo '<span class="link-head-text"><span class="link-title">' . e(localized_field($link, 'title')) . '</span>';
+        if ($domain !== '') echo '<span class="link-domain">' . e($domain) . '</span>';
+        echo '</span></span>';
+        echo '<span class="link-desc">' . e(localized_field($link, 'description') !== '' ? localized_field($link, 'description') : t('暂无描述')) . '</span>';
+        echo '<span class="link-card-foot"><span class="link-badge link-badge-cat">' . e($catName) . '</span>'
+            . '<span class="link-count" title="' . e(t('点击次数')) . '">' . ui_icon('eye') . '<span class="click-value">' . (int)$link['click_count'] . '</span></span>'
+            . '<span class="link-arrow" aria-hidden="true">' . ui_icon('external') . '</span></span></a>';
+    }
+    echo '</div>';
+}
+
+if (!$cats) {
+    echo '<div class="empty-block"><p>' . e(t('还没有可展示的分类，请先到后台添加分类与链接。')) . '</p>'
+        . '<a class="btn-primary" href="admin/login.php">' . e(t('进入管理后台')) . '</a></div>';
+}
+echo '</main>';
 ?>
-<section class="category-block" id="cat-<?= $cid ?>" data-cat="<?= $cid ?>" data-name="<?= e(localized_field($cat, 'name')) ?>"
-         data-count="<?= $hasLinks ? count($grouped[$cid]) : 0 ?>">
-    <div class="category-head">
-        <span class="cat-icon"><?= category_symbol($cat) ?></span>
-        <h2 class="cat-title"><?= e(localized_field($cat, 'name')) ?></h2>
-        <span class="cat-count"><?= e(item_count($hasLinks ? count($grouped[$cid]) : 0)) ?></span>
-    </div>
-
-    <?php if (!$hasLinks): ?>
-        <div class="empty-tip category-empty"><?= e(t('该分类下暂无启用的导航链接')) ?></div>
-    <?php else: ?>
-        <div class="link-grid">
-            <?php foreach ($grouped[$cid] as $link): ?>
-                <?php
-                $safeUrl    = e($link['url']);
-                $ext        = preg_match('#^https?://#i', $link['url']) ? ' target="_blank" rel="noopener noreferrer"' : '';
-                // 图标：本地缓存 favicon 优先，其次回退首字母渐变徽章（三级抓取的最终兜底）
-                $iconUrl    = resource_icon_url($link);
-                $iconLetter = resource_initial($link);
-                $domain     = icon_display_host((string)$link['url']);
-                ?>
-                <a href="<?= $safeUrl ?>"<?= $ext ?> class="link-card"
-                   data-id="<?= (int)$link['id'] ?>"
-                   data-name="<?= e(localized_field($link, 'title')) ?>"
-                   data-desc="<?= e(localized_field($link, 'description')) ?>"
-                   data-url="<?= $safeUrl ?>">
-                    <span class="link-card-head">
-                        <?php if ($iconUrl !== ''): ?>
-                            <span class="link-icon">
-                                <img src="<?= e($iconUrl) ?>" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
-                            </span>
-                        <?php else: ?>
-                            <span class="link-icon link-icon-fallback">
-                                <span class="link-letter"><?= e($iconLetter) ?></span>
-                            </span>
-                        <?php endif; ?>
-                        <span class="link-head-text">
-                            <span class="link-title"><?= e(localized_field($link, 'title')) ?></span>
-                            <?php if ($domain !== ''): ?>
-                                <span class="link-domain"><?= e($domain) ?></span>
-                            <?php endif; ?>
-                        </span>
-                    </span>
-                    <span class="link-desc"><?= e(localized_field($link, 'description') !== '' ? localized_field($link, 'description') : t('暂无描述')) ?></span>
-                    <span class="link-card-foot">
-                        <span class="link-badge link-badge-cat"><?= e(localized_field($cat, 'name')) ?></span>
-                        <span class="link-count" title="<?= e(t('点击次数')) ?>"><?= ui_icon('eye') ?><span class="click-value"><?= (int)$link['click_count'] ?></span></span>
-                        <span class="link-arrow" aria-hidden="true"><?= ui_icon('external') ?></span>
-                    </span>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-</section>
-<?php endforeach; ?>
-
-<?php if (!$cats): ?>
-    <div class="empty-block">
-        <p><?= e(t('还没有可展示的分类，请先到后台添加分类与链接。')) ?></p>
-        <a class="btn-primary" href="admin/login.php"><?= e(t('进入管理后台')) ?></a>
-    </div>
-<?php endif; ?>
-</main>
 
 <footer class="app-footer">
-    <div class="container"><?= e($footerText) ?></div>
+    <div class="container">
+        <span><?= e($footerText) ?></span>
+        <?php if ($contactEmailValid): ?>
+            <a class="footer-contact" href="mailto:<?= e($contactEmail) ?>"><?= ui_icon('mail') ?><span><?= e($contactEmail) ?></span></a>
+        <?php endif; ?>
+    </div>
 </footer>
 
 <!-- 点击统计 -->
@@ -216,6 +223,31 @@ document.addEventListener('click', function (ev) {
 }, false);
 </script>
 
+<!-- 每日一言：同源接口每日缓存，API 失败时保留首屏兜底寄语 -->
+<script<?= nonce_attr() ?>>
+(function () {
+    var text = document.getElementById('dailyQuoteText');
+    var attribution = document.getElementById('dailyQuoteAttribution');
+    var source = document.getElementById('dailyQuoteSource');
+    if (!text || !attribution || !source || !window.fetch) return;
+    fetch('daily_quote.php?lang=' + encodeURIComponent(document.documentElement.lang || 'zh-CN'), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(function (response) { if (!response.ok) throw new Error('quote-unavailable'); return response.json(); })
+        .then(function (payload) {
+            if (!payload || !payload.ok || !payload.quote || !payload.quote.text) return;
+            var quote = payload.quote;
+            text.textContent = quote.text;
+            var parts = [quote.from_who, quote.from].filter(function (part) { return !!part; });
+            attribution.textContent = parts.length ? '— ' + parts.join(' · ') : (<?= jt('小组寄语') ?>);
+            if (quote.provider === 'hitokoto' || quote.provider === 'zenquotes') {
+                source.href = quote.source_url || (quote.provider === 'zenquotes' ? 'https://zenquotes.io/' : 'https://hitokoto.cn/');
+                source.textContent = quote.provider === 'zenquotes' ? (<?= jt('由 ZenQuotes 提供') ?>) : (<?= jt('由一言提供') ?>);
+                source.hidden = false;
+            }
+        })
+        .catch(function () { /* 使用服务器渲染的每日兜底寄语 */ });
+})();
+</script>
+
 <!-- 聚合搜索：切换引擎 + 回车/点击跳转外部搜索引擎（关键词 encodeURIComponent 后替换 {q}） -->
 <script<?= nonce_attr() ?>>
 (function () {
@@ -233,9 +265,7 @@ document.addEventListener('click', function (ev) {
             p.classList.toggle('is-active', on);
             p.setAttribute('aria-selected', on ? 'true' : 'false');
         });
-        var ph = pill.getAttribute('data-placeholder');
-        if (ph) { input.setAttribute('placeholder', ph); }
-        input.setAttribute('aria-label', (pill.getAttribute('data-label') || '') + (' ' + <?= jt('搜索关键词') ?>));
+        input.setAttribute('aria-label', <?= jt('搜索资源名称、网址或分类') ?>);
         tip.hidden = true;
         if (focusInput) { input.focus(); }
     }
@@ -278,14 +308,15 @@ document.addEventListener('click', function (ev) {
 })();
 </script>
 
-<!-- 分类标签筛选：默认「全部」，状态写入 URL 参数 ?cat=，刷新/分享后保留 -->
+<!-- 分类标签筛选：默认展示小组协作；选择状态写入 URL 参数 ?cat=，刷新/分享后保留 -->
 <script<?= nonce_attr() ?>>
 (function () {
     var filter = document.getElementById('catFilter');
     if (!filter) { return; }
     var pills = Array.prototype.slice.call(filter.querySelectorAll('.filter-pill'));
-    var blocks = Array.prototype.slice.call(document.querySelectorAll('.category-block'));
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.link-card'));
     var emptyTip = document.getElementById('filterEmptyTip');
+    var input = document.getElementById('aggInput');
     if (!pills.length) { return; }
 
     var ids = pills.map(function (p) { return p.getAttribute('data-cat'); });
@@ -295,7 +326,9 @@ document.addEventListener('click', function (ev) {
         try {
             raw = new URLSearchParams(window.location.search).get('cat') || '';
         } catch (e) { raw = ''; }
-        return ids.indexOf(raw) !== -1 ? raw : 'all';
+        if (ids.indexOf(raw) !== -1) return raw;
+        var defaultCat = filter.getAttribute('data-default-cat') || 'all';
+        return ids.indexOf(defaultCat) !== -1 ? defaultCat : 'all';
     }
 
     function apply(cat, syncUrl) {
@@ -304,19 +337,26 @@ document.addEventListener('click', function (ev) {
             p.classList.toggle('is-active', on);
             p.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
-        blocks.forEach(function (block) {
-            var hit = cat === 'all' || block.getAttribute('data-cat') === cat;
-            block.classList.toggle('is-hidden', !hit);
+        var query = input ? input.value.trim().toLocaleLowerCase() : '';
+        var visible = 0;
+        cards.forEach(function (card) {
+            var categoryMatch = cat === 'all' || card.getAttribute('data-cat') === cat;
+            var searchable = [card.getAttribute('data-name'), card.getAttribute('data-url'), card.getAttribute('data-desc'), card.getAttribute('data-category')].join(' ').toLocaleLowerCase();
+            var queryMatch = query === '' || searchable.indexOf(query) !== -1;
+            var hit = categoryMatch && queryMatch;
+            card.classList.toggle('is-hidden', !hit);
+            if (hit) visible++;
         });
-        if (emptyTip) {
-            var target = document.getElementById('cat-' + cat);
-            var isEmptyCat = !!target && target.getAttribute('data-count') === '0';
-            emptyTip.classList.toggle('is-hidden', !isEmptyCat);
+        if (emptyTip) emptyTip.classList.toggle('is-hidden', visible > 0);
+        var heading = document.getElementById('resourcesHeading');
+        if (heading) {
+            var activePill = pills.filter(function (p) { return p.getAttribute('data-cat') === cat; })[0];
+            heading.textContent = cat === 'all' ? (filter.getAttribute('data-all-label') || '')
+                : (activePill && activePill.firstChild ? activePill.firstChild.nodeValue.trim() : '');
         }
         if (syncUrl) {
             var url = new URL(window.location.href);
-            if (cat === 'all') url.searchParams.delete('cat');
-            else url.searchParams.set('cat', cat);
+            url.searchParams.set('cat', cat);
             if (window.history && window.history.replaceState) {
                 window.history.replaceState(null, '', url);
             }
@@ -327,11 +367,10 @@ document.addEventListener('click', function (ev) {
         pill.addEventListener('click', function () {
             var cat = pill.getAttribute('data-cat');
             apply(cat, true);
-            var target = document.getElementById('cat-' + cat);
-            if (target && cat !== 'all') { target.scrollIntoView({ block: 'start' }); }
         });
     });
 
+    if (input) input.addEventListener('input', function () { apply(currentCat(), false); });
     apply(currentCat(), false);
 })();
 </script>

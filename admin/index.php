@@ -566,10 +566,12 @@ $iconStats = icon_cache_stats($db);
     var csrfEl = form ? form.querySelector('input[name="csrf_token"]') : null;
     var CSRF   = csrfEl ? csrfEl.value : '';
     var running = false;
+    var resumeState = null;
+    var originalButtonHtml = btn ? btn.innerHTML : '';
 
     /* 防僵死三件套：单次请求超时 / 整批总时限 / 单条失败重试上限 —— 保证进度条必然结束 */
     var REQ_TIMEOUT_MS = 15000;   // 单次请求硬超时，到点 abort，绝不让页面无限等待
-    var RUN_TIMEOUT_MS = 90000;   // 整批刷新总时限（90 秒），到点停止并给出统计
+    var RUN_TIMEOUT_MS = 180000;  // 整批刷新总时限（180 秒），覆盖 100 条演示资源的批量抓取
     var MAX_RETRY      = 1;       // 单条失败最多重试 1 次，禁止无限重试
     var BATCH_LIMIT    = 3;       // 每批条数（后端上限 ICON_BATCH_MAX=5，取 3 更平滑）
 
@@ -630,12 +632,19 @@ $iconStats = icon_cache_stats($db);
         bar.hidden = false;
         fill.style.width = '0%';
 
+        var saved = resumeState;
+        resumeState = null;
         var startedAt  = Date.now();
-        var cursor     = 0;
-        var ok = 0, fail = 0, total = 0, processed = 0;
-        var retryOk = 0, retryFail = 0;   // 失败条目的重试结果
+        var cursor     = saved ? saved.cursor : 0;
+        var ok = saved ? saved.ok : 0;
+        var fail = saved ? saved.fail : 0;
+        var total = saved ? saved.total : 0;
+        var processed = saved ? saved.processed : 0;
+        var retryOk = saved ? saved.retryOk : 0;
+        var retryFail = saved ? saved.retryFail : 0;
         var reqTries = 0;                 // 请求级失败重试计数
-        var retryQueue = [];
+        var retryQueue = saved ? saved.retryQueue.slice() : [];
+        var activeRetryJob = null;
         var runningReq = null;
         var runTimer = null;
         var ended = false;                // finish 只允许执行一次
@@ -662,8 +671,25 @@ $iconStats = icon_cache_stats($db);
             running = false;
             btn.disabled = false;
             if (runTimer) { clearTimeout(runTimer); runTimer = null; }
+            if (kind === 'timeout' || kind === 'error') {
+                var pendingRetries = retryQueue.slice();
+                if (activeRetryJob) pendingRetries.unshift(activeRetryJob);
+                if (total > processed || pendingRetries.length) {
+                    resumeState = {
+                        cursor: cursor, total: total, processed: processed, ok: ok, fail: fail,
+                        retryOk: retryOk, retryFail: retryFail, retryQueue: pendingRetries
+                    };
+                    btn.textContent = (<?= jt('继续刷新剩余图标') ?>);
+                } else {
+                    btn.innerHTML = originalButtonHtml;
+                }
+            }
             if (runningReq) { try { runningReq.abort(); } catch (e2) {} runningReq = null; }
-            if (kind === 'done') { fill.style.width = '100%'; }
+            if (kind === 'done') {
+                resumeState = null;
+                fill.style.width = '100%';
+                btn.innerHTML = originalButtonHtml;
+            }
             text.textContent = msg;
             if (kind === 'done') {
                 setTimeout(function () { window.location.reload(); }, 1200);
@@ -674,6 +700,7 @@ $iconStats = icon_cache_stats($db);
         runTimer = setTimeout(function () {
             finish('timeout', stopMsg((<?= jt('已到') ?> + ' ') + Math.round(RUN_TIMEOUT_MS / 1000) + (' ' + <?= jt('秒总时限，刷新已停止：') ?>)));
         }, RUN_TIMEOUT_MS);
+        if (saved && total) fill.style.width = Math.min(100, Math.round(processed / total * 100)) + '%';
 
         /* 按游标逐批推进 */
         function pump() {
@@ -733,12 +760,14 @@ $iconStats = icon_cache_stats($db);
                 return;
             }
             var job = retryQueue.shift();
+            activeRetryJob = job;
             text.textContent = (<?= jt('正在重试失败条目…') ?> + ' ') + stats();
             runningReq = new AbortController();
             post({ action: 'single', id: job.id }, runningReq)
                 .then(function (res) {
                     runningReq = null;
                     if (ended) return;
+                    activeRetryJob = null;
                     if (res && res.ok && res.item) {
                         applyItem(res.item);
                         if (res.item.ok) {
@@ -757,6 +786,7 @@ $iconStats = icon_cache_stats($db);
                 .catch(function (err) {
                     runningReq = null;
                     if (ended) return;
+                    activeRetryJob = null;
                     retryFail++;
                     drainRetry();
                 });

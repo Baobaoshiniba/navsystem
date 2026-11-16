@@ -170,6 +170,19 @@ html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
             . e(t('当前账号可能仍在使用初始密码，建议尽快更换。'))
             . ' <a href="password.php">' . e(t('去修改密码')) . '</a></div>';
     }
+
+    $demoGuidance = [
+        'links'      => t('链接管理说明：新增、编辑或停用会立即影响首页；删除后无法从页面撤销。请用测试条目验证。'),
+        'categories' => t('分类管理说明：改名、排序或删除会影响首页分组；删除分类可能同时移除其链接。请先确认关联内容。'),
+        'vault'      => t('密码保险箱说明：仅添加虚构凭据；显示与复制会读取明文。重置保险箱会永久删除全部条目。'),
+        'settings'   => t('站点设置说明：保存后首页文案、搜索与邮箱会立即更新；请勿填写个人隐私或真实密钥。'),
+        'stats'      => t('点击统计说明：打开首页资源会增加演示点击量；恢复演示环境会将统计清零。'),
+        'password'   => t('账号密码说明：成功修改会立即改变全组共用的后台登录密码；恢复演示环境可还原演示账号。'),
+        'reset'      => t('恢复演示环境会删除所有后台账号并重建 admin / admin123.，重置 100 条资源、点击统计和密码保险箱；提交前会自动备份数据库。'),
+    ];
+    $guidance = $demoGuidance[$activeNav] ?? t('课堂演示说明：页面操作会作用于组内共用的演示数据；使用虚构内容，重要变更可通过「恢复演示」回到初始状态。');
+    echo '<aside class="admin-demo-notice" role="note"><span class="admin-demo-mark" aria-hidden="true">i</span><div><strong>'
+        . e(t('课堂演示 · 操作提示')) . '</strong><p>' . e($guidance) . '</p></div></aside>';
 }
 
 /**
@@ -178,6 +191,14 @@ html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
 function admin_footer(): void
 {
     echo '</main>';
+    $footerKey = locale() === 'en' ? 'footer_text_en' : 'footer_text';
+    $footerText = trim(setting($footerKey));
+    $email = trim(setting('contact_email'));
+    if ($email === '') $email = 'liu5xin@139.com';
+    echo '<footer class="admin-app-footer"><div class="admin-app-footer-inner">';
+    if ($footerText !== '') echo '<span>' . e($footerText) . '</span>';
+    if ($email !== '') echo '<a href="mailto:' . e($email) . '">' . ui_icon('mail') . '<span>' . e($email) . '</span></a>';
+    echo '</div></footer>';
     page_footer('../');
 }
 

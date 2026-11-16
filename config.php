@@ -52,6 +52,8 @@ $config = [
     'search_placeholder' => '在 {engine} 中搜索…',
     // 页脚版权 / 公司信息
     'site_footer'        => '小组项目导航 © 2026 · 一起协作，高效完成',
+    // 页脚联系邮箱（后台站点设置可替换或清空）
+    'contact_email'      => 'liu5xin@139.com',
 
     // ---- 点击统计防护 ----
     // 同一客户端对同一链接的计数最小间隔（秒）。窗口内重复上报只计一次。
@@ -185,6 +187,7 @@ function site_settings_defaults(): array
         'site_slogan'        => $config['site_slogan']        ?? '协作、开发与学习资源，一处直达',
         'search_placeholder' => $config['search_placeholder'] ?? '在 {engine} 中搜索…',
         'footer_text'        => $config['site_footer']        ?? '小组项目导航 © 2026 · 一起协作，高效完成',
+        'contact_email'      => $config['contact_email']      ?? '',
         'site_name_en'          => 'Team Resource Hub',
         'logo_text_en'          => 'Team Workspace',
         'site_slogan_en'        => 'Your shared space for collaboration, development and learning',

@@ -77,11 +77,11 @@ function favicon_html(string $prefix): string
 }
 
 /**
- * 精致 Logo 徽章（青蓝渐变圆角方块 + 白色罗盘指针 SVG）
+ * 导航罗盘徽章（蓝色圆角方块 + 白色方向针 SVG）
  */
 function logo_badge_html(): string
 {
-    return '<span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#2563eb"/><rect x="7" y="7" width="7" height="7" rx="1.5" fill="white"/><rect x="18" y="7" width="7" height="7" rx="1.5" fill="white"/><rect x="7" y="18" width="7" height="7" rx="1.5" fill="white"/><path d="M18 21.5h7m-3.5-3.5v7" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></span>';
+    return '<span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" focusable="false"><rect width="32" height="32" rx="9" fill="#245bd8"/><circle cx="16" cy="16" r="11" stroke="white" stroke-opacity=".42" stroke-width="1.35"/><path d="m10.5 22 4-10.3L24 8.5l-3.5 9.4z" fill="white"/><path d="m14.5 11.7 6 6.2" stroke="#9ce8d7" stroke-width="1.7" stroke-linecap="round"/><circle cx="16" cy="16" r="1.5" fill="#245bd8" stroke="white" stroke-width="1"/></svg></span>';
 }
 
 /**
@@ -140,6 +140,18 @@ function page_footer(string $base = ''): void
     echo '<script src="' . $base . 'assets/js/ui-wiring.js"></script><script src="' . $base . 'assets/js/i18n.js"></script><script src="' . $base . 'assets/js/theme.js"></script><script src="' . $base . 'assets/js/workspace.js"></script>
 </body>
 </html>';
+}
+
+/** Shared copyright and contact footer for sign-in, install and registration pages. */
+function site_footer_html(string $class = 'auth-page-footer'): string
+{
+    $footerKey = locale() === 'en' ? 'footer_text_en' : 'footer_text';
+    $footerText = trim(setting($footerKey));
+    $email = trim(setting('contact_email')) ?: 'liu5xin@139.com';
+    return '<footer class="' . e($class) . '">'
+        . '<span>' . e($footerText) . '</span>'
+        . '<a href="mailto:' . e($email) . '">' . ui_icon('mail') . '<span>' . e($email) . '</span></a>'
+        . '</footer>';
 }
 
 /**

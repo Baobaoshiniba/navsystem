@@ -20,10 +20,13 @@ $fieldMeta = [
     'site_slogan'        => [t('副标题 / 欢迎语'), 'text', t('顶栏品牌区下方与主视觉区的一句话简介')],
     'search_placeholder' => [t('聚合搜索提示语'), 'text', (t('前台聚合搜索栏输入框的提示语，') . '{engine} ' . t('会替换为当前选中的引擎名；留空使用默认值'))],
     'footer_text'        => [t('页脚 / 项目信息'), 'text', t('页面底部展示的项目说明；留空使用默认值')],
+    'contact_email'      => [t('联系邮箱'), 'email', t('显示在前台页脚；留空则不显示')],
 ];
 
 foreach ($fieldMeta as $key => $meta) {
-    $fieldMeta[$key . '_en'] = [$meta[0] . ' · English', $meta[1], t('英文留空时显示中文内容')];
+    if ($key !== 'contact_email') {
+        $fieldMeta[$key . '_en'] = [$meta[0] . ' · English', $meta[1], t('英文留空时显示中文内容')];
+    }
 }
 
 if (is_post()) {
@@ -97,7 +100,7 @@ foreach ($fieldMeta as $key => [$label, $type, $hint]) {
     echo '<div class="form-field">
         <label class="field-label" for="f-' . e($key) . '">' . e($label) . '</label>
         <input class="form-input" type="' . $type . '" id="f-' . e($key) . '" name="' . e($key) . '"
-               value="' . $value . '" placeholder="' . e($defaults[$key] ?? '') . '" maxlength="200">
+               value="' . $value . '" placeholder="' . e($defaults[$key] ?? '') . '" maxlength="' . ($key === 'contact_email' ? '254' : '200') . '">
         <div class="field-hint">' . e($hint) . '</div>
     </div>';
 }

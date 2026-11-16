@@ -14,6 +14,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/_init.php';
+require_once __DIR__ . '/_vault.php';
 // 清空 / 重置不可恢复，且弹窗里能直接改掉管理员账号 —— 仅站长可进入
 require_owner();
 
@@ -47,11 +48,16 @@ if (is_post()) {
         ];
     };
 
+    $errors = [];
+    if ($action === 'restore_demo') {
+        // 完整 Demo 恢复：账号与保险箱凭据均为公开测试值。
+        $username = 'admin';
+        $password = 'admin123.';
+        $password2 = 'admin123.';
+    }
     $userLen = function_exists('mb_strlen') ? mb_strlen($username) : strlen($username);
     $pwdLen  = function_exists('mb_strlen') ? mb_strlen($password) : strlen($password);
-
-    $errors = [];
-    if (!in_array($action, ['reset', 'blank'], true)) {
+    if (!in_array($action, ['reset', 'blank', 'restore_demo'], true)) {
         $errors[] = t('未知操作，请重新选择要执行的动作。');
     }
     if ($username === '') {
@@ -69,8 +75,9 @@ if (is_post()) {
     if (!$ack) {
         $errors[] = t('请先勾选「我已了解该操作不可恢复」。');
     }
-    if ($confirmText !== '清空') {
-        $errors[] = t('请在确认框中输入「清空」字样后再提交。');
+    $requiredPhrase = $action === 'restore_demo' ? t('恢复演示') : t('清空');
+    if ($confirmText !== $requiredPhrase) {
+        $errors[] = t('请在确认框中输入对应的确认短语后再提交。');
     }
 
     if ($errors) {
@@ -79,35 +86,57 @@ if (is_post()) {
         redirect('reset.php');
     }
 
-    // 清空是不可逆的，动手前先留一份快照（README 早就这么写了，此前代码里并没有）
-    $backupPath = backup_create($action === 'blank' ? 'blank' : 'reset');
+    // 动手前留一份快照。完整演示恢复必须先备份成功，避免无法回退。
+    $backupPath = backup_create($action === 'blank' ? 'blank' : ($action === 'restore_demo' ? 'demo-restore' : 'reset'));
+    if ($action === 'restore_demo' && $backupPath === '') {
+        flash(t('恢复前备份失败，未修改任何数据；请检查磁盘空间和 data/backups 写入权限。'), 'error');
+        redirect('reset.php');
+    }
 
     try {
         $db->beginTransaction();
 
-        // 1) 必要数据：管理员账号入库（password_hash 存储；密码留空表示保持原密码不变）
-        admin_save_account($username, $password);
-        // 改名后同步会话里的用户名：否则下一次请求会因「会话账号查不到」被判为幽灵会话踢出。
-        // 角色也重取一次，避免会话里留存过期角色。
-        $_SESSION['admin_username'] = $username;
-
-        // 2) 必要数据：站点 5 项文案（留空则回退系统默认文案）
-        $upsertSetting = $db->prepare(
-            "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at"
-        );
-        foreach ($siteValues as $k => $v) {
-            $upsertSetting->execute([$k, $v]);
+        // 1) 完整恢复时重建公开 Demo 站长；普通动作仍按弹窗修改账号。
+        if ($action === 'restore_demo') {
+            $db->exec('DELETE FROM admin_users;');
+            $db->exec("DELETE FROM sqlite_sequence WHERE name = 'admin_users';");
+            $db->prepare(
+                'INSERT INTO admin_users (username, password_hash, role, must_change_password, created_at, updated_at)
+                 VALUES (?, ?, ?, 0, datetime(\'now\'), datetime(\'now\'))'
+            )->execute(['admin', password_hash('admin123.', PASSWORD_DEFAULT), ROLE_OWNER]);
+            $_SESSION['admin_username'] = 'admin';
+        } else {
+            admin_save_account($username, $password);
+            $_SESSION['admin_username'] = $username;
         }
 
-        // 3) 清空分类 / 链接及自增序列（ID 从 1 重新开始）；管理员账号与站点设置保留
+        // 普通重置可同时保存弹窗中的站点文案；完整恢复保留用户配置和联系邮箱。
+        if ($action !== 'restore_demo') {
+            $upsertSetting = $db->prepare(
+                "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at"
+            );
+            foreach ($siteValues as $k => $v) {
+                $upsertSetting->execute([$k, $v]);
+            }
+        }
+
+        // 清空链接 / 分类、点击去重记录及自增序列。
         $db->exec('DELETE FROM links;');
         $db->exec('DELETE FROM categories;');
+        $db->exec('DELETE FROM click_throttle;');
         $db->exec("DELETE FROM sqlite_sequence WHERE name IN ('links', 'categories');");
 
-        // 4) 「重置演示数据」额外写入演示分类与链接；「清空为空白」保持空库
-        if ($action === 'reset') {
+        // 普通「重置演示」与「完整恢复」写入默认资源；「清空为空白」保持空库。
+        if ($action === 'reset' || $action === 'restore_demo') {
             seed_demo_data($db);
+        }
+
+        if ($action === 'restore_demo') {
+            // 已在同一事务和快照保护下清空原保险箱，再创建课堂公开测试密码。
+            vault_reset_all();
+            vault_setup_master('12345678');
+            vault_lock();
         }
 
         $db->commit();
@@ -115,6 +144,7 @@ if (is_post()) {
         if ($db->inTransaction()) {
             $db->rollBack();
         }
+        if ($action === 'restore_demo') vault_lock();
         $rememberForm(is_string($action) ? $action : '', $username, $siteValues);
         // 异常原文是 SQL、表结构、文件路径这类内部细节 —— 连站长都不必看到，
         // 落到服务器错误日志里去查就够了。与 install.php 的处理保持一致。
@@ -131,7 +161,9 @@ if (is_post()) {
         ? (' ' . t('已自动备份当前数据库到') . ' data/backups/' . basename($backupPath) . '。')
         : '';
 
-    if ($action === 'reset') {
+    if ($action === 'restore_demo') {
+        flash(t('完整演示环境已恢复：所有后台账号已重建为 admin / admin123.，100 条资源，点击统计已清零；保险箱主密码为 12345678，原保险箱条目已清除。网站文案和联系邮箱保留。') . $backupNote);
+    } elseif ($action === 'reset') {
         flash(t('演示数据已重置：分类与链接已恢复为演示初始状态，管理员账号与站点文案已保存。') . $backupNote);
     } else {
         flash(t('已清空为空白：分类与链接已清空（ID 从 1 重新开始），管理员账号与站点文案已保存。') . $backupNote);
@@ -156,7 +188,7 @@ foreach ($siteKeys as $k) {
         : raw_setting($k);
 }
 
-$pendingAction = (is_array($form) && in_array((string)($form['action'] ?? ''), ['reset', 'blank'], true))
+$pendingAction = (is_array($form) && in_array((string)($form['action'] ?? ''), ['reset', 'blank', 'restore_demo'], true))
     ? (string)$form['action']
     : '';
 $autoOpen = is_array($form);
@@ -178,27 +210,30 @@ admin_header(t('重置演示'), 'reset');
 ?>
 <div class="page-title-row">
     <h1 class="page-title"><?= e(t('重置演示 / 清空数据')) ?></h1>
-    <p class="page-sub"><?= e(t('执行前先确认必要数据（管理员账号与站点文案），再选择要执行的动作。')) ?></p>
+    <p class="page-sub"><?= e(t('选择重置数据、清空数据或恢复完整 Demo；危险操作均需二次确认。')) ?></p>
 </div>
 
 <section class="panel glass warn-panel">
     <h2 class="panel-title"><?= ui_icon('warning') ?> <?= e(t('危险操作确认')) ?></h2>
     <p><?= e(t('当前数据库包含：')) ?><strong><?= $catCount ?></strong> <?= e(t('个分类、')) ?><strong><?= $linkCount ?></strong> <?= e(t('条链接，累计点击')) ?> <strong><?= number_format($totalClicks) ?></strong> <?= e(t('次。')) ?></p>
-    <p class="danger-text"><?= e(t('两个动作均')) ?><strong><?= e(t('不可恢复')) ?></strong>，<?= e(t('点击后需在弹窗中填写必要数据并完成二次确认（勾选知晓 + 输入「清空」）才会真正执行。')) ?></p>
+    <p class="danger-text"><?= e(t('所有恢复和清空操作均不可撤销')) ?>；<?= e(t('恢复演示会先备份数据库，并要求勾选知晓和输入确认短语。')) ?></p>
 
     <div class="reset-actions">
         <button type="button" class="btn-danger" data-open-reset="reset"><?= e(t('重置演示数据…')) ?></button>
         <button type="button" class="btn-ghost" data-open-reset="blank"><?= e(t('清空为空白…')) ?></button>
+        <button type="button" class="btn-danger" data-open-reset="restore_demo"><?= e(t('恢复完整演示环境…')) ?></button>
     </div>
 </section>
 
 <section class="panel glass">
-    <h2 class="panel-title"><?= e(t('两个动作的区别')) ?></h2>
+    <h2 class="panel-title"><?= e(t('操作内容与影响')) ?></h2>
     <ul class="reset-list">
-        <li><strong><?= e(t('重置演示数据')) ?></strong>：<?= e(t('清空分类 / 链接与点击统计后，重新写入 4 个小组作业分类与 12 条演示链接。')) ?></li>
+        <li><strong><?= e(t('重置演示数据')) ?></strong>：<?= e(t('清空分类 / 链接与点击统计后，重新写入 4 个小组作业分类与 100 条演示链接。')) ?></li>
         <li><strong><?= e(t('清空为空白')) ?></strong>：<?= e(t('只清空分类、链接与自增序列（ID 从 1 重新开始），')) ?><strong><?= e(t('不写入')) ?></strong><?= e(t('任何演示数据，适合从零开始搭建自己的导航。')) ?></li>
-        <li><?= e(t('两个动作都会先保存弹窗中的')) ?><strong><?= e(t('管理员账号')) ?></strong>（<?= e(t('用户名 / 新密码，入库加密存储）与')) ?><strong><?= e(t('站点 5 项文案')) ?></strong>，<?= e(t('再执行清空，全流程同一事务，任一步失败自动回滚。')) ?></li>
-        <li><?= e(t('管理员账号与站点设置不在清空范围内；弹窗中留空的文案字段会回退为系统默认文案。')) ?></li>
+        <li><?= e(t('重置演示和清空为空白会保存弹窗中的管理员账号与站点文案，再执行操作；任一步失败都会回滚。')) ?></li>
+        <li><?= e(t('这两个操作会保留当前管理员账号和站点设置；恢复完整演示则会重建管理员账号并保留站点文案与邮箱。')) ?></li>
+        <li><strong><?= e(t('恢复完整演示环境')) ?></strong>：<?= e(t('删除所有后台账号后重建唯一站长 admin / admin123.，重置为 4 个分类和 100 条链接、清零点击统计，并清除保险箱条目后设置主密码 12345678。网站文案和联系邮箱保留。其他成员需重新使用演示账号登录。')) ?></li>
+        <li><?= e(t('执行前自动备份当前数据库；恢复演示操作仍会永久删除保险箱条目。')) ?></li>
     </ul>
 </section>
 
@@ -217,7 +252,10 @@ admin_header(t('重置演示'), 'reset');
             <div class="modal-body">
                 <p class="modal-tip" id="resetModalDesc"><?= e(t('执行前请先确认必要数据：')) ?></p>
 
-                <section class="modal-section">
+                <details class="modal-section reset-optional-settings">
+                    <summary><?= e(t('可选：调整管理员账号与站点文案')) ?></summary>
+                    <p class="field-hint"><?= e(t('默认保留当前账号和站点文案；只有需要修改时才展开。')) ?></p>
+                <section class="modal-section reset-account-section">
                     <h3 class="modal-section-title"><?= e(t('管理员账号')) ?></h3>
                     <div class="modal-grid">
                         <div class="form-field span-2">
@@ -240,7 +278,7 @@ admin_header(t('重置演示'), 'reset');
                     </div>
                 </section>
 
-                <section class="modal-section">
+                <section class="modal-section reset-site-section">
                     <h3 class="modal-section-title"><?= e(t('站点文案')) ?></h3>
                     <div class="modal-grid">
                         <?php foreach ($siteFieldMeta as $key => [$label, $hint]): ?>
@@ -254,15 +292,16 @@ admin_header(t('重置演示'), 'reset');
                         <?php endforeach; ?>
                     </div>
                 </section>
+                </details>
 
                 <section class="modal-section modal-danger">
                     <h3 class="modal-section-title"><?= e(t('危险确认')) ?></h3>
                     <label class="check-label" for="m-ack">
                         <input type="checkbox" name="ack" value="1" id="m-ack">
-                        <span><?= e(t('我已了解：该操作不可恢复，分类 / 链接与点击统计将被清空。')) ?></span>
+                        <span id="resetAckText"><?= e(t('我已了解：该操作不可恢复，分类 / 链接与点击统计将被清空。')) ?></span>
                     </label>
                     <div class="form-field">
-                        <label class="field-label" for="m-confirm"><?= e(t('请输入「清空」以确认')) ?><span class="req">*</span></label>
+                        <label class="field-label" for="m-confirm"><span id="confirmLabelText"><?= e(t('请输入「清空」以确认')) ?></span><span class="req">*</span></label>
                         <input class="form-input" type="text" id="m-confirm" name="confirm_text"
                                autocomplete="off" placeholder="清空">
                     </div>
@@ -272,7 +311,7 @@ admin_header(t('重置演示'), 'reset');
 
             <footer class="modal-foot">
                 <button type="button" class="btn-ghost" id="resetCancel"><?= e(t('取消')) ?></button>
-                <button type="submit" class="btn-danger" id="resetSubmit"><?= e(t('确认重置演示数据')) ?></button>
+                <button type="submit" class="btn-danger" id="resetSubmit" disabled><?= e(t('确认重置演示数据')) ?></button>
             </footer>
         </form>
     </div>
@@ -294,22 +333,45 @@ admin_header(t('重置演示'), 'reset');
     var userEl    = document.getElementById('m-username');
     var pwdEl     = document.getElementById('m-pwd');
     var pwd2El    = document.getElementById('m-pwd2');
+    var confirmLabelEl = document.getElementById('confirmLabelText');
+    var ackTextEl = document.getElementById('resetAckText');
+    var modalTitleEl = document.getElementById('resetModalTitle');
+    var accountSection = document.querySelector('.reset-account-section');
+    var siteSection = document.querySelector('.reset-site-section');
+    var optionalSettings = document.querySelector('.reset-optional-settings');
     var lastFocus = null;
 
     var ACTION_TEXT = {
         reset: (<?= jt('确认重置演示数据') ?>),
-        blank: (<?= jt('确认清空为空白') ?>)
+        blank: (<?= jt('确认清空为空白') ?>),
+        restore_demo: (<?= jt('恢复完整演示环境') ?>)
     };
     var ACTION_HINT = {
         reset: (<?= jt('将清空分类 / 链接与点击统计，并重新写入演示数据（不可恢复）；管理员账号与站点文案会先保存。') ?>),
-        blank: (<?= jt('将清空全部分类与链接（ID 从 1 重新开始），不写入演示数据（不可恢复）；管理员账号与站点文案会先保存。') ?>)
+        blank: (<?= jt('将清空全部分类与链接（ID 从 1 重新开始），不写入演示数据（不可恢复）；管理员账号与站点文案会先保存。') ?>),
+        restore_demo: (<?= jt('删除所有后台账号并重建 admin / admin123.，重置为 100 条演示链接并清零点击统计；清空密码保险箱全部条目并将主密码设为 12345678。网站文案与联系邮箱保留。') ?>)
     };
+    var CONFIRM_PHRASES = { reset: (<?= jt('清空') ?>), blank: (<?= jt('清空') ?>), restore_demo: (<?= jt('恢复演示') ?>) };
 
     function setAction(action) {
         action = ACTION_TEXT[action] ? action : 'reset';
         actionEl.value = action;
         submitEl.textContent = ACTION_TEXT[action];
         if (hintEl) { hintEl.textContent = ACTION_HINT[action]; }
+        var isRestore = action === 'restore_demo';
+        if (accountSection) accountSection.hidden = isRestore;
+        if (siteSection) siteSection.hidden = isRestore;
+        if (optionalSettings) optionalSettings.hidden = isRestore;
+        if (modalTitleEl) modalTitleEl.textContent = isRestore ? (<?= jt('恢复课堂演示环境') ?>) : (<?= jt('必要数据设置') ?>);
+        if (confirmLabelEl) confirmLabelEl.textContent = isRestore ? (<?= jt('请输入「恢复演示」以确认') ?>) : (<?= jt('请输入「清空」以确认') ?>);
+        if (ackTextEl) ackTextEl.textContent = isRestore ? (<?= jt('所有后台账号会被删除并恢复为 admin / admin123.，保险箱条目会永久删除，演示链接与统计会恢复初始状态。') ?>) : (<?= jt('我已了解：该操作不可恢复，分类 / 链接与点击统计将被清空。') ?>);
+        confirmEl.placeholder = CONFIRM_PHRASES[action];
+        updateSubmitState();
+    }
+
+    function updateSubmitState() {
+        if (!submitEl || !ackEl || !confirmEl) return;
+        submitEl.disabled = !ackEl.checked || confirmEl.value.trim() !== CONFIRM_PHRASES[actionEl.value];
     }
 
     function hideError() {
@@ -348,6 +410,8 @@ admin_header(t('重置演示'), 'reset');
     Array.prototype.forEach.call(document.querySelectorAll('[data-open-reset]'), function (btn) {
         btn.addEventListener('click', function () { openModal(btn.getAttribute('data-open-reset')); });
     });
+    ackEl.addEventListener('change', updateSubmitState);
+    confirmEl.addEventListener('input', updateSubmitState);
     document.getElementById('resetModalClose').addEventListener('click', closeModal);
     document.getElementById('resetCancel').addEventListener('click', closeModal);
     backdrop.addEventListener('mousedown', function (e) { if (e.target === backdrop) { closeModal(); } });
@@ -379,8 +443,8 @@ admin_header(t('重置演示'), 'reset');
         if (!ackEl.checked) {
             e.preventDefault(); showError((<?= jt('请先勾选「我已了解该操作不可恢复」。') ?>), ackEl); return;
         }
-        if (confirmEl.value.trim() !== '清空') {
-            e.preventDefault(); showError((<?= jt('请在确认框中输入「清空」字样后再提交。') ?>), confirmEl); return;
+        if (confirmEl.value.trim() !== CONFIRM_PHRASES[actionEl.value]) {
+            e.preventDefault(); showError((<?= jt('确认短语不正确，请按提示重新输入。') ?>), confirmEl); return;
         }
     });
 

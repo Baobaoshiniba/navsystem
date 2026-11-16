@@ -52,9 +52,9 @@ $fmt = function ($v): string {
 
 <div class="stat-cards">
     <div class="stat-card glass"><span class="sc-ico"><?= ui_icon('link') ?></span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['total_links']) ?></div><div class="stat-label"><?= e(t('导航链接总数')) ?></div></div></div>
-    <div class="stat-card glass"><span class="sc-ico">👆</span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['total_clicks']) ?></div><div class="stat-label"><?= e(t('累计点击')) ?></div></div></div>
-    <div class="stat-card glass"><span class="sc-ico"><?= ui_icon('chart') ?></span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['avg_clicks']) ?></div><div class="stat-label"><?= e(t('平均点击数')) ?></div></div></div>
-    <div class="stat-card glass"><span class="sc-ico"><?= ui_icon('chart') ?></span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['max_clicks']) ?></div><div class="stat-label"><?= e(t('最高单链接点击')) ?></div></div></div>
+    <div class="stat-card glass"><span class="sc-ico"><?= ui_icon('click') ?></span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['total_clicks']) ?></div><div class="stat-label"><?= e(t('累计点击')) ?></div></div></div>
+    <div class="stat-card glass"><span class="sc-ico"><?= ui_icon('average') ?></span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['avg_clicks']) ?></div><div class="stat-label"><?= e(t('平均点击数')) ?></div></div></div>
+    <div class="stat-card glass"><span class="sc-ico"><?= ui_icon('trend') ?></span><div class="sc-body"><div class="stat-num grad-text"><?= $fmt($summary['max_clicks']) ?></div><div class="stat-label"><?= e(t('最高单链接点击')) ?></div></div></div>
 </div>
 
 <div class="two-col stats-split">

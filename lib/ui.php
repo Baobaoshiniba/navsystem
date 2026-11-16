@@ -1,17 +1,21 @@
 <?php
-/** Small, consistent 24px outline symbols. Decorative icons are hidden from assistive technology. */
+/** Crisp 24px outline symbols with a shared 1.9px stroke. Decorative icons are hidden from assistive technology. */
 declare(strict_types=1);
 function ui_icon(string $name, string $class = ''): string
 {
     $paths = [
         'grid' => '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
         'folder' => '<path d="M3 7a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v9H3z"/>',
-        'link' => '<path d="m10 13 4-4M8 16l-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M16 8l2-2a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0" transform="translate(1 0) scale(.91)"/>',
+        'link' => '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7"/>',
         'lock' => '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',
         'settings' => '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="var(--card-solid)"/><circle cx="15" cy="17" r="3" fill="var(--card-solid)"/>',
-        'chart' => '<path d="M4 3v17h17M9 15V9M14 15V5M19 15v-4"/>',
+        'chart' => '<path d="M4 4v16h16M8 15v-4m4 4V7m4 8v-5"/>',
+        'click' => '<path d="m7 4 1 14 4-3 3 5 2.5-1.5-3-5.2 5-.8L7 4z"/><path d="M18 4V2m3 5h2m-3 2 1.5 1.5"/>',
+        'average' => '<path d="M4 5v15h16M7 16v-3m4 3V8m4 8v-5"/><path d="M6 11h14" stroke-dasharray="2 2"/>',
+        'trend' => '<path d="M4 20V5m0 15h16m-13-4 4-4 3 2 5-6m-4 0h4v4"/>',
         'reset' => '<path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/>',
         'search' => '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+        'mail' => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
         'external' => '<path d="M14 3h7v7M21 3l-11 11M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/>',
         'arrow' => '<path d="M5 12h14m-5-5 5 5-5 5"/>',
         'home' => '<path d="m3 10 9-7 9 7v11h-6v-7H9v7H3z"/>',
@@ -33,7 +37,7 @@ function ui_icon(string $name, string $class = ''): string
         'key' => '<circle cx="8" cy="8" r="5"/><path d="m12 12 9 9m-3-3 3-3m-6 0 3-3"/>',
     ];
     $path = $paths[$name] ?? $paths['folder'];
-    return '<svg class="ui-icon ' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' . $path . '</svg>';
+    return '<svg class="ui-icon ' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' . $path . '</svg>';
 }
 
 function category_symbol(array $category): string

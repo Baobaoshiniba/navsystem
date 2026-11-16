@@ -96,7 +96,7 @@ html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
 <link rel="stylesheet" href="../assets/css/style.css">
 <link rel="stylesheet" href="../assets/css/workspace.css">
 </head>
-<body class="auth-body">
+<body class="auth-body auth-login-body">
 <div class="auth-shell">
 
     <?= auth_brand_html(
@@ -106,17 +106,26 @@ html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
             t('按小组需要整理分类，随时更新常用资源'),
             t('账号密码加密入库，登录态安全可控'),
             t('点击数据实时统计，热门入口一目了然'),
+            t('4 个分类、100 条站点示例资源，适合课堂演示'),
         ],
-        t('管理后台 · 小组成员维护入口')
+        ''
     ) ?>
 
     <main class="auth-panel">
         <section class="auth-card" aria-labelledby="authTitle">
             <div class="auth-language"><?= language_switch_html() ?></div>
             <div class="auth-card-head">
-                <span class="auth-badge"><?= e(t('管理后台')) ?></span>
+                <span class="auth-badge"><?= e(t('Demo 演示环境')) ?> · <?= e(t('管理后台')) ?></span>
                 <h1 class="auth-title" id="authTitle"><?= e(t('欢迎回来')) ?></h1>
                 <p class="auth-sub"><?= e(t('请使用管理员账号登录，继续维护你的导航页。')) ?></p>
+                <p class="auth-demo-hint"><strong>DEMO</strong> · <?= e(t('这是用于小组作业展示的演示站点，导航内容为示例数据。')) ?></p>
+                <div class="auth-demo-credentials" role="note" aria-label="<?= e(t('Demo 登录信息')) ?>">
+                    <div class="auth-demo-credentials-title"><?= e(t('Demo 登录信息')) ?></div>
+                    <dl>
+                        <div><dt><?= e(t('账号')) ?></dt><dd><code>admin</code></dd></div>
+                        <div><dt><?= e(t('密码')) ?></dt><dd><code>admin123.</code></dd></div>
+                    </dl>
+                </div>
             </div>
 
             <?php if ($notice): ?>
@@ -133,7 +142,7 @@ html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
                 <div class="form-field">
                     <label class="field-label" for="username"><?= e(t('账号')) ?></label>
                     <input class="form-input" type="text" id="username" name="username"
-                           value="<?= e($username) ?>" required autocomplete="username"
+                           value="<?= e($username !== '' ? $username : 'admin') ?>" required autocomplete="username"
                            autofocus placeholder="<?= e(t('请输入账号')) ?>">
                 </div>
 
@@ -171,5 +180,6 @@ html[data-theme="dark"]:not([data-loaded]) { background:#111827; }
         </div>
     </main>
 
+    <?= site_footer_html() ?>
 </div>
 <?php page_footer('../'); ?>
