@@ -12,3 +12,10 @@ data/*
 
 # Local IDE configuration
 .idea/
+
+# 图标缓存：lib/favicon.php 抓取后落盘，属运行时产物，缓存目录会自动创建
+assets/icons/*
+
+# 工作区元数据与文档打包产物
+.workbuddy/
+docs/user-stories.zip
